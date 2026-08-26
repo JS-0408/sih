@@ -1,0 +1,45 @@
+# ============================================================
+# Phase 1 Pipeline Configuration
+# ============================================================
+# All pipeline parameters are centrally controlled here.
+# Modify values as needed; restart the pipeline to apply.
+
+# ── Tiling ────────────────────────────────────────────────
+tiling:
+  tile_size: 512          # Tile width and height in pixels
+  overlap_pct: 0.2        # Fractional tile overlap (0.0–1.0)
+
+# ── Keypoint Detection ────────────────────────────────────
+keypoints:
+  method: "SIFT"          # Detector backend: "SIFT" or "ORB"
+  max_keypoints: 5000     # Maximum keypoints extracted per tile
+  grid_cells: 16          # Grid cells (NxN) for spatial pruning
+
+# ── FLANN Matching ────────────────────────────────────────
+flann:
+  trees: 5                # KD-tree count for FLANN index
+  checks: 50              # Search checks (higher = more accurate, slower)
+  ratio_threshold: 0.75   # Lowe's ratio test threshold
+
+# ── RANSAC Geometric Filtering ────────────────────────────
+ransac:
+  threshold: 5.0          # Reprojection error threshold in pixels
+  max_iter: 2000          # Maximum RANSAC iterations
+  confidence: 0.995       # Required confidence level
+
+# ── CRS & Projection ─────────────────────────────────────
+geospatial:
+  crs_target: "EPSG:4326" # Target coordinate reference system
+  bands: null             # Band indices to load (null = all bands)
+
+# ── Ray Cluster ───────────────────────────────────────────
+ray:
+  head_ip: "auto"         # "auto" for local, or explicit IP e.g. "192.168.1.10"
+  num_cpus: null          # Override CPU count (null = auto-detect)
+  num_gpus: null          # Override GPU count (null = auto-detect)
+  dashboard_port: 8265    # Ray dashboard port
+
+# ── Metrics ───────────────────────────────────────────────
+metrics:
+  rmse_unit: "pixels"     # "pixels" or "meters"
+  output_dir: "outputs/"  # Directory for evaluation results

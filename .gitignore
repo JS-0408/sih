@@ -1,0 +1,45 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ray
+/tmp/ray/
+ray_results/
+
+# Raster / geospatial data (large files)
+*.tif
+*.tiff
+*.geotiff
+*.img
+*.hdf
+*.nc
+
+# Logs & outputs
+logs/
+*.log
+outputs/
+
+# OS
+.DS_Store
+Thumbs.db
