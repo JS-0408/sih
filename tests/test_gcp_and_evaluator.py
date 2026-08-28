@@ -63,6 +63,8 @@ class TestGCPEstimate:
         gcps = e.add_tile_correspondences(src, dst)
         result = e.estimate(gcps, scene_width=512, scene_height=512)
         assert not result.is_valid
+        assert not result.estimation_success
+        assert result.failure_reason is not None
 
     def test_affine_model(self):
         src, dst = _make_pts(30, shift_x=5.0, shift_y=5.0)

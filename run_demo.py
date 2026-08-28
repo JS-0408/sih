@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from scripts.generate_synthetic_geotiff import create_synthetic_geotiffs
-from main import run_pipeline, load_config
+from main import run_pipeline, load_default_config
 
 
 def main() -> None:
@@ -33,7 +33,7 @@ def main() -> None:
         print("[1/2] Using existing GeoTIFF datasets in data/")
 
     print("[2/2] Running registration pipeline...")
-    config = load_config("config/phase1_config.yaml")
+    config = load_default_config()
 
     summary = run_pipeline(ref_path, tgt_path, out_path, config)
 

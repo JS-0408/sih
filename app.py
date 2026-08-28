@@ -22,6 +22,7 @@ import base64
 import io
 import json
 import logging
+import tempfile
 import sys
 from pathlib import Path
 from typing import Optional, Tuple
@@ -43,7 +44,11 @@ sys.path.insert(0, str(ROOT))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("WorkstationApp")
 
-CONFIG_PATH = ROOT / "config" / "pipeline_config.yaml"
+from src.config import CANONICAL_CONFIG_PATH
+from src.io.upload_validation import validate_geotiff_upload
+
+CONFIG_PATH = CANONICAL_CONFIG_PATH
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 
 # ─── 1. Page Configuration & Custom CSS ───────────────────────────────────────
 st.set_page_config(
@@ -211,8 +216,8 @@ section[data-testid="stSidebar"] {
 
 def load_config() -> dict:
     try:
-        with open(CONFIG_PATH, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+        from main import load_default_config as _load_default_config
+        return _load_default_config()
     except Exception as exc:
         logger.warning(f"Config load error: {exc}")
         return {}
@@ -224,6 +229,20 @@ def save_config(cfg: dict) -> None:
             yaml.safe_dump(cfg, f, default_flow_style=False)
     except Exception as exc:
         logger.warning(f"Config save error: {exc}")
+
+
+def _prepare_uploaded_pair(ref_file, tgt_file) -> tuple[Path, Path, tempfile.TemporaryDirectory]:
+    ref_bytes = validate_geotiff_upload(ref_file.name, ref_file.getvalue(), MAX_UPLOAD_BYTES)
+    tgt_bytes = validate_geotiff_upload(tgt_file.name, tgt_file.getvalue(), MAX_UPLOAD_BYTES)
+
+    tmp_root = ROOT / "data" / "tmp_upload"
+    tmp_root.mkdir(parents=True, exist_ok=True)
+    tmp_dir = tempfile.TemporaryDirectory(prefix="streamlit_upload_", dir=tmp_root)
+    ref_path = Path(tmp_dir.name) / "reference.tif"
+    tgt_path = Path(tmp_dir.name) / "target.tif"
+    ref_path.write_bytes(ref_bytes)
+    tgt_path.write_bytes(tgt_bytes)
+    return ref_path, tgt_path, tmp_dir
 
 
 # ─── Helpers: Array Encoding & Visualizations ─────────────────────────────────
@@ -588,14 +607,13 @@ with tab1:
 
         if run_btn:
             ref_path, tgt_path = None, None
+            upload_tmp_dir = None
 
             if ref_file and tgt_file:
-                tmp = ROOT / "data" / "tmp_upload"
-                tmp.mkdir(parents=True, exist_ok=True)
-                ref_path = tmp / "uploaded_ref.tif"
-                tgt_path = tmp / "uploaded_tgt.tif"
-                ref_path.write_bytes(ref_file.read())
-                tgt_path.write_bytes(tgt_file.read())
+                try:
+                    ref_path, tgt_path, upload_tmp_dir = _prepare_uploaded_pair(ref_file, tgt_file)
+                except ValueError as exc:
+                    st.error(f"Upload validation failed: {exc}")
             elif preset_choice in preset_map:
                 ref_path, tgt_path = preset_map[preset_choice]
 
@@ -616,13 +634,28 @@ with tab1:
                     try:
                         summary = run_pipeline(ref_path, tgt_path, out_path, override_cfg)
                         st.session_state["summary"]  = summary
-                        st.session_state["ref_path"] = str(ref_path)
-                        st.session_state["tgt_path"] = str(tgt_path)
+                        if upload_tmp_dir is not None:
+                            from src.io.raster_loader import RasterLoader
+                            _loader = RasterLoader()
+                            ref_arr, _ = _loader.load(ref_path)
+                            tgt_arr, _ = _loader.load(tgt_path)
+                            st.session_state["uploaded_ref_arr"] = ref_arr
+                            st.session_state["uploaded_tgt_arr"] = tgt_arr
+                            st.session_state["ref_path"] = ""
+                            st.session_state["tgt_path"] = ""
+                        else:
+                            st.session_state["uploaded_ref_arr"] = None
+                            st.session_state["uploaded_tgt_arr"] = None
+                            st.session_state["ref_path"] = str(ref_path)
+                            st.session_state["tgt_path"] = str(tgt_path)
                         st.session_state["out_path"] = str(out_path)
                         st.success("Registration complete!")
                     except Exception as exc:
                         logger.exception("Pipeline failed")
                         st.error(f"Execution Error: {exc}")
+                    finally:
+                        if upload_tmp_dir is not None:
+                            upload_tmp_dir.cleanup()
 
     st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
@@ -630,14 +663,19 @@ with tab1:
     ref_p = st.session_state.get("ref_path", str(preset_map["Synthetic Pair (demo)"][0]))
     tgt_p = st.session_state.get("tgt_path", str(preset_map["Synthetic Pair (demo)"][1]))
     out_p = st.session_state.get("out_path", str(ROOT / "data" / "processed" / "registered_output.tif"))
+    uploaded_ref_arr = st.session_state.get("uploaded_ref_arr")
+    uploaded_tgt_arr = st.session_state.get("uploaded_tgt_arr")
 
-    if Path(ref_p).exists() and Path(tgt_p).exists():
+    if (uploaded_ref_arr is not None and uploaded_tgt_arr is not None) or (Path(ref_p).exists() and Path(tgt_p).exists()):
         from src.io.raster_loader import RasterLoader
         loader = RasterLoader()
 
         try:
-            ref_arr, _ = loader.load(ref_p)
-            tgt_arr, _ = loader.load(tgt_p)
+            if uploaded_ref_arr is not None and uploaded_tgt_arr is not None:
+                ref_arr, tgt_arr = uploaded_ref_arr, uploaded_tgt_arr
+            else:
+                ref_arr, _ = loader.load(ref_p)
+                tgt_arr, _ = loader.load(tgt_p)
             out_arr, _ = loader.load(out_p) if Path(out_p).exists() else (tgt_arr, None)
 
             if show_vectors:
@@ -726,12 +764,17 @@ with tab3:
 
         ref_p = st.session_state.get("ref_path", str(preset_map["Synthetic Pair (demo)"][0]))
         tgt_p = st.session_state.get("tgt_path", str(preset_map["Synthetic Pair (demo)"][1]))
+        uploaded_ref_arr = st.session_state.get("uploaded_ref_arr")
+        uploaded_tgt_arr = st.session_state.get("uploaded_tgt_arr")
 
-        if Path(ref_p).exists() and Path(tgt_p).exists():
+        if (uploaded_ref_arr is not None and uploaded_tgt_arr is not None) or (Path(ref_p).exists() and Path(tgt_p).exists()):
             from src.io.raster_loader import RasterLoader
             loader = RasterLoader()
-            ref_arr, _ = loader.load(ref_p)
-            tgt_arr, _ = loader.load(tgt_p)
+            if uploaded_ref_arr is not None and uploaded_tgt_arr is not None:
+                ref_arr, tgt_arr = uploaded_ref_arr, uploaded_tgt_arr
+            else:
+                ref_arr, _ = loader.load(ref_p)
+                tgt_arr, _ = loader.load(tgt_p)
             hmap = render_rmse_heatmap(ref_arr, tgt_arr)
             st.image(hmap, use_container_width=True, caption="Spatial Error Residual Intensity Heatmap (JET Scale)")
         else:

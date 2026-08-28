@@ -32,6 +32,7 @@ import numpy as np
 import yaml
 
 from src.geometry.gcp_estimator import GCPEstimator, ControlPoint
+from src.config import CANONICAL_CONFIG_PATH
 from src.io.raster_loader import RasterLoader
 from src.io.raster_writer import RasterWriter
 from src.matching.flann_matcher import FLANNMatcher
@@ -60,6 +61,11 @@ def load_config(config_path: str | Path) -> dict[str, Any]:
         cfg = yaml.safe_load(f)
     logger.info(f"Loaded config: {path}")
     return cfg
+
+
+def load_default_config() -> dict[str, Any]:
+    """Load the canonical pipeline configuration shared by all entry points."""
+    return load_config(CANONICAL_CONFIG_PATH)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -240,6 +246,9 @@ def run_pipeline(
         min_coverage=cfg_eval.get("min_coverage", 0.05),
     )
     gcp_result = estimator.estimate(all_gcps, ref_w, ref_h)
+    if not gcp_result.estimation_success:
+        reason = gcp_result.failure_reason or "Global transform estimation failed."
+        raise RuntimeError(reason)
 
     homography = gcp_result.matrix
 
@@ -328,14 +337,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Geospatial Image Registration Pipeline CLI"
     )
-    parser.add_argument("--config",    default="config/pipeline_config.yaml")
+    parser.add_argument("--config",    default=str(CANONICAL_CONFIG_PATH))
     parser.add_argument("--reference", required=True)
     parser.add_argument("--target",    required=True)
     parser.add_argument("--output",    default="outputs/registered_output.tif")
     args = parser.parse_args()
 
     try:
-        cfg     = load_config(args.config)
+        cfg     = load_config(args.config) if args.config else load_default_config()
         summary = run_pipeline(args.reference, args.target, args.output, cfg)
         print(json.dumps(summary, indent=2))
         sys.exit(0 if summary["evaluation"]["overall_pass"] else 1)

@@ -15,7 +15,7 @@ from rasterio.transform import Affine
 class RMSECalculator:
     """
     Computes Root Mean Square Error between predicted and ground-truth
-    control point positions, in either pixel or geographic (meter) space.
+    control point positions, in either pixel or map-coordinate space.
     """
 
     @staticmethod
@@ -56,16 +56,17 @@ class RMSECalculator:
             raise ValueError("Cannot compute RMSE on empty arrays.")
 
         diff = predicted - ground_truth
-        return float(math.sqrt(np.mean(diff**2)))
+        sq_dist = np.sum(diff**2, axis=1)
+        return float(math.sqrt(np.mean(sq_dist)))
 
     @staticmethod
-    def compute_geo(
+    def compute_map(
         predicted: np.ndarray,
         ground_truth: np.ndarray,
         transform: Affine,
     ) -> float:
         """
-        Compute geographic RMSE in metres using the raster affine transform.
+        Compute map-coordinate RMSE using the raster affine transform.
 
         Pixel coordinates are converted to map coordinates via the affine
         transform before computing Euclidean distances.
@@ -81,8 +82,8 @@ class RMSECalculator:
 
         Returns
         -------
-        rmse_m : float
-            RMSE in map units (degrees if EPSG:4326; use projected CRS for metres).
+        rmse_map : float
+            RMSE in map units (degrees for geographic CRS; metres for projected CRS).
         """
         predicted = np.asarray(predicted, dtype=np.float64)
         ground_truth = np.asarray(ground_truth, dtype=np.float64)
@@ -101,7 +102,17 @@ class RMSECalculator:
         pred_map = px_to_map(predicted)
         gt_map = px_to_map(ground_truth)
         diff = pred_map - gt_map
-        return float(math.sqrt(np.mean(diff**2)))
+        sq_dist = np.sum(diff**2, axis=1)
+        return float(math.sqrt(np.mean(sq_dist)))
+
+    @staticmethod
+    def compute_geo(
+        predicted: np.ndarray,
+        ground_truth: np.ndarray,
+        transform: Affine,
+    ) -> float:
+        """Backward-compatible alias for map-coordinate RMSE."""
+        return RMSECalculator.compute_map(predicted, ground_truth, transform)
 
     @staticmethod
     def summary(
@@ -110,24 +121,24 @@ class RMSECalculator:
         transform: Affine | None = None,
     ) -> dict[str, float]:
         """
-        Return a dict with pixel RMSE and optionally geo RMSE.
+        Return a dict with pixel RMSE and optionally map-coordinate RMSE.
 
         Parameters
         ----------
         predicted, ground_truth : np.ndarray
             Point arrays of shape ``(N, 2)``.
         transform : Affine | None
-            If provided, also computes geo RMSE.
+            If provided, also computes map-coordinate RMSE.
 
         Returns
         -------
-        dict with keys ``"rmse_px"`` (and ``"rmse_geo"`` when transform is given).
+        dict with keys ``"rmse_px"`` and ``"rmse_map"`` (plus legacy ``"rmse_geo"`` alias).
         """
         result: dict[str, float] = {
             "rmse_px": RMSECalculator.compute(predicted, ground_truth)
         }
         if transform is not None:
-            result["rmse_geo"] = RMSECalculator.compute_geo(
-                predicted, ground_truth, transform
-            )
+            rmse_map = RMSECalculator.compute_map(predicted, ground_truth, transform)
+            result["rmse_map"] = rmse_map
+            result["rmse_geo"] = rmse_map
         return result
