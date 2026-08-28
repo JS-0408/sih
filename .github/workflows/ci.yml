@@ -44,7 +44,7 @@ jobs:
         run: |
           python scripts/generate_synthetic_geotiff.py
           python main.py \
-            --reference data/raw/reference.tif \
-            --target data/raw/target.tif \
+            --reference data/reference.tif \
+            --target data/target.tif \
             --output data/processed/ci_registered.tif \
             --config config/pipeline_config.yaml
