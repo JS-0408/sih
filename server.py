@@ -14,6 +14,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -21,8 +22,9 @@ import cv2
 import numpy as np
 from flask import Flask, jsonify, request, send_from_directory, send_file
 
-from main import run_pipeline, load_config
+from main import run_pipeline, load_default_config
 from src.io.raster_loader import RasterLoader
+from src.io.path_policy import resolve_allowed_path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GeoServer")
@@ -32,6 +34,14 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
+ALLOWED_PATH_ROOTS = (DATA_DIR.resolve(), OUTPUTS_DIR.resolve())
+
+
+def _resolve_user_path(path_str: str) -> Path:
+    path = resolve_allowed_path(path_str, BASE_DIR, ALLOWED_PATH_ROOTS)
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return path
 
 
 @app.route("/")
@@ -84,15 +94,23 @@ def register_pipeline():
     """Execute registration pipeline with parameter payload from Web UI."""
     payload = request.get_json(force=True) or {}
     
-    ref_path = payload.get("reference")
-    tgt_path = payload.get("target")
+    ref_path_raw = payload.get("reference")
+    tgt_path_raw = payload.get("target")
     detector = payload.get("detector", "SIFT")
     tile_size = int(payload.get("tile_size", 512))
     max_keypoints = int(payload.get("max_keypoints", 3000))
     ransac_threshold = float(payload.get("ransac_threshold", 5.0))
 
-    if not ref_path or not tgt_path:
+    if not ref_path_raw or not tgt_path_raw:
         return jsonify({"error": "Missing reference or target file path"}), 400
+
+    try:
+        ref_path = _resolve_user_path(ref_path_raw)
+        tgt_path = _resolve_user_path(tgt_path_raw)
+    except PermissionError:
+        return jsonify({"error": "Input path is outside allowed directories"}), 403
+    except FileNotFoundError:
+        return jsonify({"error": "Input file not found"}), 404
 
     out_name = f"web_registered_{detector.lower()}.tif"
     out_path = OUTPUTS_DIR / out_name
@@ -101,7 +119,7 @@ def register_pipeline():
     with rasterio.open(ref_path) as ds:
         ref_crs = str(ds.crs) if ds.crs else "EPSG:4326"
 
-    cfg = load_config(BASE_DIR / "config" / "phase1_config.yaml")
+    cfg = load_default_config()
     cfg["keypoints"]["method"] = detector
     cfg["keypoints"]["max_keypoints"] = max_keypoints
     cfg["tiling"]["tile_size"] = tile_size
@@ -112,9 +130,9 @@ def register_pipeline():
 
     try:
         summary = run_pipeline(ref_path, tgt_path, out_path, cfg)
-        summary["output_preview_url"] = f"/api/preview?path={out_path}"
-        summary["reference_preview_url"] = f"/api/preview?path={ref_path}"
-        summary["target_preview_url"] = f"/api/preview?path={tgt_path}"
+        summary["output_preview_url"] = f"/api/preview?path={os.fspath(out_path)}"
+        summary["reference_preview_url"] = f"/api/preview?path={os.fspath(ref_path)}"
+        summary["target_preview_url"] = f"/api/preview?path={os.fspath(tgt_path)}"
         return jsonify(summary)
     except Exception as exc:
         logger.error(f"Registration API error: {exc}", exc_info=True)
@@ -125,12 +143,19 @@ def register_pipeline():
 def get_image_preview():
     """Render 8-bit PNG preview of any GeoTIFF raster for Web UI displaying."""
     path_str = request.args.get("path")
-    if not path_str or not Path(path_str).exists():
+    if not path_str:
+        return jsonify({"error": "Missing path"}), 400
+
+    try:
+        safe_path = _resolve_user_path(path_str)
+    except PermissionError:
+        return jsonify({"error": "Path is outside allowed directories"}), 403
+    except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
 
     try:
         loader = RasterLoader()
-        arr, _ = loader.load(path_str)
+        arr, _ = loader.load(safe_path)
 
         # Convert to (H, W, C) uint8 for browser preview
         if arr.ndim == 3:
@@ -171,7 +196,15 @@ def get_image_preview():
 @app.route("/outputs/<path:filename>")
 def serve_output_file(filename: str):
     """Serve output files for download."""
-    return send_from_directory(OUTPUTS_DIR, filename)
+    try:
+        safe_file = resolve_allowed_path(filename, OUTPUTS_DIR, [OUTPUTS_DIR])
+    except PermissionError:
+        return jsonify({"error": "Path is outside outputs directory"}), 403
+
+    if not safe_file.exists():
+        return jsonify({"error": "File not found"}), 404
+
+    return send_file(safe_file, as_attachment=True)
 
 
 if __name__ == "__main__":

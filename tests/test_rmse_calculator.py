@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from rasterio.transform import from_bounds
+from rasterio.transform import Affine, from_bounds
 
 from src.metrics.rmse_calculator import RMSECalculator
 
@@ -28,9 +28,9 @@ class TestRMSEPixel:
 
     def test_known_rmse(self, offset_match: tuple) -> None:
         pred, gt = offset_match
-        # diff = [[-3,0],[0,0],[0,0]] → squared = [9,0,0,0,0,0] → mean=1.5 → sqrt≈1.2247
+        # point-wise euclidean distances = [3, 0, 0] -> RMSE = sqrt(mean([9,0,0])) = sqrt(3)
         result = RMSECalculator.compute(pred, gt)
-        assert result == pytest.approx(1.2247448, rel=1e-4)
+        assert result == pytest.approx(1.7320508, rel=1e-4)
 
     def test_shape_mismatch_raises(self) -> None:
         with pytest.raises(ValueError, match="Shape mismatch"):
@@ -59,6 +59,13 @@ class TestRMSEGeo:
         assert isinstance(result, float)
         assert result >= 0.0
 
+    def test_map_rmse_matches_pixel_for_identity_transform(self, offset_match: tuple) -> None:
+        pred, gt = offset_match
+        transform = Affine.identity()
+        assert RMSECalculator.compute_map(pred, gt, transform) == pytest.approx(
+            RMSECalculator.compute(pred, gt)
+        )
+
 
 class TestRMSESummary:
     def test_summary_no_transform(self, offset_match: tuple) -> None:
@@ -72,4 +79,5 @@ class TestRMSESummary:
         transform = from_bounds(0, 0, 1, 1, 100, 100)
         out = RMSECalculator.summary(pred, gt, transform)
         assert "rmse_px" in out
+        assert "rmse_map" in out
         assert "rmse_geo" in out

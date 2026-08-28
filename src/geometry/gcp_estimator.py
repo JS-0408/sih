@@ -45,6 +45,8 @@ class GCPResult:
     spatial_coverage: float               # [0, 1] fraction of scene covered
     warnings: list[str] = field(default_factory=list)
     is_valid: bool = True
+    estimation_success: bool = True
+    failure_reason: str | None = None
 
 
 class GCPEstimator:
@@ -133,9 +135,8 @@ class GCPEstimator:
         warnings: list[str] = []
 
         if len(control_points) < self.min_inliers:
-            warnings.append(
-                f"Only {len(control_points)} control points — need >= {self.min_inliers}."
-            )
+            failure_reason = f"Only {len(control_points)} control points — need >= {self.min_inliers}."
+            warnings.append(failure_reason)
             return GCPResult(
                 model=self.model,
                 matrix=np.eye(3, dtype=np.float64),
@@ -145,13 +146,30 @@ class GCPEstimator:
                 spatial_coverage=0.0,
                 warnings=warnings,
                 is_valid=False,
+                estimation_success=False,
+                failure_reason=failure_reason,
             )
 
         src_pts = np.float32([[cp.src_x, cp.src_y] for cp in control_points])
         dst_pts = np.float32([[cp.dst_x, cp.dst_y] for cp in control_points])
 
         # Global RANSAC pass
-        matrix, mask = self._fit_model(src_pts, dst_pts)
+        matrix, mask, fit_error = self._fit_model(src_pts, dst_pts)
+        if fit_error:
+            warnings.append(fit_error)
+            return GCPResult(
+                model=self.model,
+                matrix=np.eye(3, dtype=np.float64),
+                control_points=control_points,
+                inlier_count=0,
+                rmse_px=float("inf"),
+                spatial_coverage=0.0,
+                warnings=warnings,
+                is_valid=False,
+                estimation_success=False,
+                failure_reason=fit_error,
+            )
+
         inlier_mask = mask.ravel().astype(bool) if mask is not None else np.ones(len(src_pts), dtype=bool)
         inlier_src = src_pts[inlier_mask]
         inlier_dst = dst_pts[inlier_mask]
@@ -202,13 +220,15 @@ class GCPEstimator:
             spatial_coverage=coverage,
             warnings=warnings,
             is_valid=is_valid,
+            estimation_success=True,
+            failure_reason=None,
         )
 
     # ─── Private helpers ───────────────────────────────────────────────────
 
     def _fit_model(
         self, src_pts: np.ndarray, dst_pts: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray | None, np.ndarray | None, str | None]:
         """Fit the configured geometric model to src→dst point correspondences."""
         src_r = src_pts.reshape(-1, 1, 2)
         dst_r = dst_pts.reshape(-1, 1, 2)
@@ -216,22 +236,19 @@ class GCPEstimator:
         if self.model == "homography":
             M, mask = cv2.findHomography(src_r, dst_r, cv2.RANSAC, self.ransac_threshold)
             if M is None:
-                M = np.eye(3, dtype=np.float64)
-                mask = np.ones((len(src_pts), 1), dtype=np.uint8)
+                return None, None, "Homography estimation failed."
         elif self.model == "affine":
             M, mask = cv2.estimateAffine2D(src_r, dst_r, method=cv2.RANSAC,
                                            ransacReprojThreshold=self.ransac_threshold)
             if M is None:
-                M = np.eye(2, 3, dtype=np.float64)
-                mask = np.ones((len(src_pts), 1), dtype=np.uint8)
+                return None, None, "Affine estimation failed."
             # Pad to 3×3 for uniform downstream handling
             M = np.vstack([M, [0, 0, 1]])
         elif self.model == "similarity":
             M, mask = cv2.estimateAffinePartial2D(src_r, dst_r, method=cv2.RANSAC,
                                                   ransacReprojThreshold=self.ransac_threshold)
             if M is None:
-                M = np.eye(2, 3, dtype=np.float64)
-                mask = np.ones((len(src_pts), 1), dtype=np.uint8)
+                return None, None, "Similarity estimation failed."
             M = np.vstack([M, [0, 0, 1]])
         else:  # translation
             tx = float(np.median(dst_pts[:, 0] - src_pts[:, 0]))
@@ -239,7 +256,7 @@ class GCPEstimator:
             M = np.array([[1, 0, tx], [0, 1, ty], [0, 0, 1]], dtype=np.float64)
             mask = None
 
-        return M, mask
+        return M, mask, None
 
     def _compute_residuals(
         self, M: np.ndarray, src_pts: np.ndarray, dst_pts: np.ndarray

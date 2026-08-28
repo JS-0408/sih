@@ -88,10 +88,12 @@ class RANSACFilter:
             confidence=self.confidence,
         )
 
-        if mask is None:
-            return [], None
+        if homography is None or mask is None:
+            raise ValueError("RANSAC homography estimation failed.")
 
         inlier_mask = mask.ravel().astype(bool)
         inlier_matches = [m for m, keep in zip(matches, inlier_mask) if keep]
+        if not inlier_matches:
+            raise ValueError("RANSAC produced zero inliers.")
 
         return inlier_matches, homography
