@@ -1,6 +1,6 @@
 # =============================================================================
 # pipeline_config.yaml — Yaazhi GeoAlign OS Master Configuration
-# Copyright (c) 2026 Santhosh — MIT License
+# Copyright (c) 2026 Santhosh Jayakumar & Team — MIT License
 #
 # Central configuration for the Chandrayaan-2 Image Registration Pipeline.
 # All runtime parameters are controlled here. Restart the pipeline to apply.
@@ -9,7 +9,7 @@
 # ── Tiling Strategy ───────────────────────────────────────────────────────────
 tiling:
   tile_size: 512          # Window tile edge length in pixels
-  overlap_pct: 0.20       # Fractional spatial overlap between tiles (0.0–1.0)
+  overlap_pct: 0.20       # Fractional spatial overlap between tiles (0.0-1.0)
 
 # ── Keypoint Detection ────────────────────────────────────────────────────────
 keypoints:
@@ -21,28 +21,63 @@ keypoints:
 flann:
   trees: 5                # KD-tree count (higher = more accurate index)
   checks: 50              # FLANN search checks (higher = more thorough)
-  ratio_threshold: 0.75   # Lowe's ratio test threshold (0.0–1.0)
+  ratio_threshold: 0.75   # Lowe's ratio test threshold (0.0-1.0)
 
-# ── RANSAC Geometric Verification ────────────────────────────────────────────
+# ── RANSAC Geometric Verification ─────────────────────────────────────────────
 ransac:
   model: "homography"     # Transformation model: homography | affine | similarity | translation
-  threshold: 5.0          # Maximum reprojection error in pixels for inlier classification
+  threshold: 4.0          # Maximum reprojection error in pixels for inlier classification
   max_iter: 2000          # Maximum RANSAC iteration budget
   confidence: 0.995       # Required confidence level for early termination
 
 # ── Geospatial Coordinate System ─────────────────────────────────────────────
 geospatial:
-  crs_target: "EPSG:4326" # Target coordinate reference system (auto-detected if null)
+  crs_target: "EPSG:4326" # Target coordinate reference system
   bands: null             # Band indices to load (null = all bands)
 
-# ── Quality Gate & Evaluation Thresholds ─────────────────────────────────────
+# ── Quality Gate & Evaluation Thresholds ──────────────────────────────────────
+# NOTE: These are evidence-based thresholds, not arbitrary defaults.
+# min_inliers: 12 requires a statistically meaningful homography estimate.
+# max_val_p95_px: 1.0 enforces sub-pixel accuracy on independent held-out data.
 evaluation:
-  min_inliers: 4          # Minimum GCP inlier count to pass quality gate
-  max_rmse: 15.0          # Maximum acceptable global RMSE in pixels
-  min_coverage: 0.05      # Minimum spatial convex hull coverage (0.0–1.0)
-  min_tile_success_rate: 0.30 # Minimum fraction of tiles that must succeed
+  min_inliers: 12                # Minimum GCP inlier count to pass quality gate
+  max_rmse: 5.0                  # Maximum acceptable fitting RMSE in pixels
+  min_coverage: 0.15             # Minimum spatial convex hull coverage (0.0-1.0)
+  min_tile_success_rate: 0.50    # Minimum fraction of tiles that must succeed
+  max_val_p95_px: 1.0            # Maximum P95 error on held-out validation set (sub-pixel gate)
 
-# ── Output & Metrics ─────────────────────────────────────────────────────────
+# ── Preprocessing (Illumination Normalisation) ────────────────────────────────
+# Controls radiometric normalisation applied before feature detection.
+# Options:
+#   raw        - linear stretch to uint8, no enhancement
+#   clahe      - CLAHE (recommended for OHRC/TMC-2 shadow variation)
+#   gradient   - Laplacian gradient magnitude (shadow-invariant)
+#   log_clahe  - log stretch + CLAHE (best for IIRS vs OHRC extreme dynamic range)
+preprocessing:
+  mode: "clahe"           # Normalisation strategy
+  clahe_clip: 3.0         # CLAHE clip limit (higher = more contrast, more noise)
+  clahe_grid: 8           # CLAHE tile grid cell size (pixels per side)
+
+# ── Sub-Pixel Correspondence Refinement ───────────────────────────────────────
+# Local Normalised Cross-Correlation (NCC) peak fitting after coarse SIFT/ORB matching.
+# Achieves <0.25 px residual on well-textured patches (validated in tests/test_subpixel.py).
+refinement:
+  enabled: true           # Enable sub-pixel NCC refinement stage
+  patch_size: 7           # Half-width of source patch (full = 2*patch_size+1 px)
+  search_size: 15         # Half-width of search window in reference image
+  min_ncc: 0.5            # Minimum NCC correlation score to accept refinement
+  max_refine_px: 3.0      # Maximum displacement accepted from coarse position
+
+# ── Independent Validation ────────────────────────────────────────────────────
+# Held-out GCPs not used in fitting - these are the authoritative accuracy evidence.
+# strategy: "spatial" reserves the outermost scene points (hardest validation cases).
+validation:
+  strategy: "spatial"     # Holdout strategy: "spatial" or "random"
+  holdout_fraction: 0.25  # Fraction of correspondences held out for validation
+  min_estimation_pts: 8   # Minimum points required for fitting partition
+  min_validation_pts: 4   # Minimum held-out points required for validation
+
+# ── Output & Metrics ──────────────────────────────────────────────────────────
 metrics:
   rmse_unit: "pixels"     # RMSE reporting unit: "pixels" or "meters"
   compress: "lzw"         # Output GeoTIFF compression codec
@@ -55,17 +90,17 @@ ray:
   num_gpus: null          # GPU count override (null = auto-detect)
   dashboard_port: 8265    # Ray dashboard web port
 
-# ── Deep Learning Matching (Optional) ────────────────────────────────────────
+# ── Deep Learning Matching (Optional) ─────────────────────────────────────────
+# Requires: pip install lightglue (NOT in default requirements.txt)
 deep_matching:
-  enabled: false          # Set true to use SuperPoint+LightGlue (requires torch + weights)
+  enabled: false          # Set true to use SuperPoint+LightGlue
   weights_dir: "weights/" # Relative path to model checkpoint directory
   device: "cpu"           # Inference device: "cpu" | "cuda" | "mps"
   half_precision: false   # Use float16 for GPU inference (reduces VRAM usage)
 
 # ── 3D Terrain Mesh Builder ───────────────────────────────────────────────────
 mesh_builder:
-  z_scale: 2.0            # Vertical terrain exaggeration factor (higher = more dramatic)
-  downsample: 4           # Spatial pixel downsampling factor (reduces mesh vertex count)
-  output_file: "data/processed/terrain_3d.html"   # Default HTML export path
+  z_scale: 2.0            # Vertical terrain exaggeration factor
+  downsample: 4           # Spatial pixel downsampling factor
+  output_file: "data/processed/terrain_3d.html"
   colormap: "terrain"     # Fallback colormap when no texture image is provided
-

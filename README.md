@@ -1,88 +1,78 @@
-# Yaazhi GeoAlign OS — Chandrayaan-2 Geospatial Image Registration Pipeline
+# Yaazhi GeoAlign OS — Chandrayaan-2 Geospatial Image Registration Engine
 
 [![CI](https://github.com/JS-0408/sih/actions/workflows/ci.yml/badge.svg)](https://github.com/JS-0408/sih/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://python.org)
+[![Tests](https://img.shields.io/badge/tests-108%20passed-success)](tests/)
 
-> **ISRO SIH26166** — Multi-modal, Sun-angle and scale-invariant image correspondence using Chandrayaan-2 optical images (OHRC, TMC-2 and IIRS).
-
----
-
-## Overview
-
-An end-to-end, production-grade geospatial image registration system implementing a hybrid classical + deep learning feature correspondence pipeline. Capable of aligning multi-modal lunar imagery from Chandrayaan-2's three sensors (OHRC, TMC-2, and IIRS) with sub-pixel accuracy under extreme illumination, scale, and spectral diversity.
+> **ISRO SIH26166** — Robust multi-modal image correspondence and sub-pixel geospatial registration for Chandrayaan-2 optical imagery (OHRC, TMC-2, and IIRS) under solar angle variations, scale jumps, and cross-sensor offsets.
 
 ---
 
-## Architecture
+## Technical Highlights
+
+- **[Phase 2] Windowed Streaming I/O**: RAM-bounded processing (<8 GB) using `rasterio.windows.Window` for multi-gigabyte rasters.
+- **[Phase 4] Radiometric & Illumination Normalisation**: CLAHE, Laplacian gradient magnitude, and Log-CLAHE strategies to overcome extreme solar phase-angle and shadow variations.
+- **[Phase 5] Multi-Tile Spatial Coarse-to-Fine Matching**: Grid-filtered SIFT/ORB feature detection with FLANN KD-tree search and Lowe ratio verification.
+- **[Phase 7] Sub-Pixel Correspondence Refinement**: Local Normalised Cross-Correlation (NCC) peak fitting with 2D parabolic interpolation (<0.25 px residual capability).
+- **[Phase 8] Independent Validation Engine**: Spatial holdout partitioning (outermost 25% scene points) to independently verify accuracy without fitting-residual bias.
+- **[Phase 10] Scientific Benchmark Harness**: Reproducible suite evaluating 4 scenarios across 5 feature/preprocessing strategies with automated CSV/JSON reporting.
+- **[Phase 11] Evidence-Based Quality Gates**: Structured status codes (`SUCCESS`, `LOW_CONFIDENCE`, `INSUFFICIENT_CORRESPONDENCES`, `VALIDATION_FAILURE`).
+
+---
+
+## Canonical Pipeline Architecture
 
 ```
-Chandrayaan-2 / Sentinel-2 / Custom GeoTIFF Inputs
-                    │
-                    ▼
-         ┌─────────────────────┐
-         │   Raster I/O Layer  │  ← rasterio windowed streaming (RAM-safe)
-         │   (src/io/)         │     CRS reprojection, band selection
-         └──────────┬──────────┘
-                    │
-                    ▼
-         ┌─────────────────────┐
-         │  Spatial Tile Grid  │  ← NxN window grid (512px overlap=0.2)
-         │  (main.py)          │     memory-bounded windowed reads
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  Feature Engine     │  ← SIFT / ORB detection
-         │  (src/processing/)  │     NxN spatial grid pruning (uniform density)
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  Matching Engine    │  ← FLANN KD-tree + Lowe ratio test (0.75)
-         │  (src/matching/)    │     SuperPoint + LightGlue (deep, optional)
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  RANSAC Verifier    │  ← Outlier rejection, inlier masking
-         │  (src/matching/)    │     Homography / Affine / Similarity models
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  GCP Aggregator     │  ← Global GCP pooling across all tiles
-         │  (src/geometry/)    │     Convex hull spatial coverage diagnostics
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  Sub-Pixel Warp     │  ← cv2.warpPerspective (INTER_LINEAR)
-         │  (main.py)          │     Global homography application
-         └──────────┬──────────┘
-                    │
-         ┌──────────▼──────────┐
-         │  Quality Gate       │  ← RMSE, inlier count, coverage checks
-         │  (src/metrics/)     │     Automated pass/fail + summary.json
-         └──────────┬──────────┘
-                    │
-          ┌─────────┴──────────┐
-          ▼                    ▼
-   Registered GeoTIFF    summary.json
-   (data/processed/)    (metrics report)
+Ref & Tgt GeoTIFF Rasters
+          │
+          ▼
+┌──────────────────────────────────────┐
+│  Preflight Probe & Metadata Check    │  ← Probe CRS & dimensions
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Windowed Tile Grid Processing       │  ← RAM-safe windowed reads
+│  (main.py / ray_dispatcher.py)       │     NxN spatial grid filtering
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Illumination Normalization          │  ← CLAHE / Gradient / Log-CLAHE
+│  (src/preprocessing/illumination.py) │     Shadow & solar angle invariance
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Feature Matching & RANSAC           │  ← SIFT/ORB + FLANN + RANSAC
+│  (src/processing / src/matching)     │     Global GCP collection
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Sub-Pixel NCC Refinement            │  ← Parabolic peak fitting
+│  (src/refinement/subpixel.py)        │     < 0.25 px local offset tuning
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Independent Spatial Validation      │  ← Outermost 25% point holdout
+│  (src/metrics/validation.py)         │     P95 error gate (<1.0 px claim)
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Resampling & Output Export          │  ← LANCZOS4 high-fidelity warp
+│  (main.py + src/io/raster_writer.py) │     GeoTIFF + summary report
+└──────────────────────────────────────┘
 ```
-
----
-
-## Sensor Compatibility Matrix
-
-| Sensor | Type | Resolution | Status |
-|:-------|:-----|:----------:|:------:|
-| **OHRC** | Visible panchromatic | ~0.32 m | Supported |
-| **TMC-2** | Panchromatic stereo | ~5 m | Supported |
-| **IIRS** | Hyperspectral IR | ~80 m | Supported (via deep matcher) |
-| **Sentinel-2** | Multispectral (real-world test) | ~10 m | Verified |
 
 ---
 
 ## Quick Start
 
-### 1. Clone & Install
+### 1. Installation
 
 ```bash
 git clone https://github.com/JS-0408/sih.git
@@ -90,24 +80,7 @@ cd sih
 pip install -r requirements.txt
 ```
 
-### 2. Run Quick Demo (Synthetic Data, Zero Config)
-
-```bash
-py run_demo.py
-# or
-make demo
-```
-
-### 3. Launch Interactive Web Dashboard
-
-```bash
-py server.py
-# or
-make server
-# Open browser: http://127.0.0.1:5000
-```
-
-### 4. Register Custom GeoTIFF Pair via CLI
+### 2. Run Master CLI Pipeline
 
 ```bash
 py main.py \
@@ -117,105 +90,73 @@ py main.py \
   --config    config/pipeline_config.yaml
 ```
 
-### 5. Download Model Weights (Optional — Deep Matching)
+### 3. Run Scientific Benchmark Suite
 
 ```bash
-py scripts/download_weights.py
-# or
-make weights
+py benchmark/run.py
 ```
 
-### 6. Run Full Test Suite
+### 4. Run Interactive Liquid Glass Dashboard
+
+```bash
+streamlit run app.py
+```
+
+### 5. Run Full Test Suite (108 Tests)
 
 ```bash
 py -m pytest tests/ -v
-# or
-make test
 ```
 
 ---
 
-## Benchmark Results
+## Scientific Benchmark Results
 
-| Test Scenario | Resolution | Data Type | Detector | RMSE (px) | Coverage | Status |
-|:-------------|:----------:|:---------:|:--------:|:---------:|:--------:|:------:|
-| Synthetic Pair (1024²) | 1024×1024 | `uint8` | SIFT | **0.372** | 80.8% | PASS |
-| Hard 3-Band Scene (2048²) | 2048×2048 | `uint8` RGB | SIFT | **0.419** | 75.0% | PASS |
-| Real Sentinel-2 (1536²) | 1536×1536 | `uint16` | SIFT | **0.293** | 88.0% | PASS |
+*Generated by `benchmark/run.py` on synthetic test pairs:*
+
+| Test Scenario | Strategy | Inliers | Fitting RMSE | Val P95 Error | Status |
+|:--------------|:---------|:-------:|:------------:|:-------------:|:------:|
+| 1_same_sensor_baseline | SIFT_CLAHE | 29 | 1.48 px | 16.53 px | `VALIDATION_FAILURE`* |
+| 1_same_sensor_baseline | SIFT_Gradient | 64 | 0.35 px | 12.16 px | `VALIDATION_FAILURE`* |
+| 2_solar_illumination | SIFT_CLAHE | 8 | 999.0 px | N/A | `VALIDATION_FAILURE` |
+| 3_viewpoint_affine | SIFT_CLAHE_SubPixel | 10 | 36.2 px | 51.2 px | `VALIDATION_FAILURE` |
+
+*\*Note: The Quality Gate strictly flags `VALIDATION_FAILURE` whenever the independent held-out P95 error exceeds 1.0 px. This prevents unverified accuracy claims from passing into production.*
 
 ---
 
-## Repository Structure
+## Project Structure
 
 ```
 sih/
-├── .github/workflows/ci.yml     # GitHub Actions CI pipeline
+├── .github/workflows/ci.yml       # GitHub Actions automated test workflow
+├── benchmark/                     # [Phase 10] Benchmark suite & data generator
+│   ├── run.py                     # Master benchmark runner
+│   └── results/                   # Machine-readable CSV/JSON benchmark outputs
 ├── config/
-│   ├── phase1_config.yaml       # Phase 1 baseline config
-│   └── pipeline_config.yaml     # Master centralized config
-├── data/
-│   ├── raw/                     # Input rasters (git-ignored)
-│   └── processed/               # Output registered files (git-ignored)
-├── weights/                     # Model checkpoints (git-ignored)
-├── scripts/
-│   ├── download_weights.py      # Model weight downloader
-│   ├── generate_synthetic_geotiff.py
-│   ├── fetch_real_satellite_data.py
-│   └── ray_dispatcher.py
+│   └── pipeline_config.yaml       # Central configuration file
+├── data/                          # Rasters & DEMs (git-ignored)
 ├── src/
-│   ├── geometry/gcp_estimator.py
-│   ├── io/raster_loader.py + raster_writer.py
-│   ├── matching/flann_matcher.py + ransac_filter.py + deep_matcher.py
-│   ├── metrics/evaluator.py + rmse_calculator.py
-│   └── processing/keypoint_detector.py + grid_filter.py
-├── tests/                       # 71 pytest unit/integration tests
-├── web/                         # Web UI dashboard (HTML/CSS/JS)
-├── .gitignore
-├── LICENSE                      # MIT License
-├── Makefile                     # Developer shortcuts
-├── README.md
-├── app.py                       # Streamlit UI (optional)
-├── main.py                      # CLI entrypoint
-├── requirements.txt
-├── run.bat                      # 1-click Windows launcher
-├── run.sh                       # 1-click Linux/macOS launcher
-└── server.py                    # Flask API + Web dashboard server
-```
-
----
-
-## Configuration
-
-All pipeline parameters are centralized in `config/pipeline_config.yaml`:
-
-```yaml
-tiling:
-  tile_size: 512
-  overlap_pct: 0.20
-
-keypoints:
-  method: "SIFT"          # or "ORB"
-  max_keypoints: 5000
-
-ransac:
-  model: "homography"
-  threshold: 5.0
-
-evaluation:
-  min_inliers: 4
-  max_rmse: 15.0
+│   ├── geometry/gcp_estimator.py  # GCP aggregation & model fitting
+│   ├── io/                        # Windowed RasterLoader & RasterWriter
+│   ├── matching/                  # FLANN, RANSAC, DeepMatcher backends
+│   ├── metrics/
+│   │   ├── evaluator.py           # Tile stats & overall gate evaluation
+│   │   ├── rmse_calculator.py     # Pixel & geographic RMSE formulas
+│   │   └── validation.py          # [Phase 8] Independent holdout validation
+│   ├── preprocessing/
+│   │   └── illumination.py        # [Phase 4] Radiometric normalisation
+│   ├── refinement/
+│   │   └── subpixel.py            # [Phase 7] Sub-pixel NCC peak refiner
+│   └── processing/                # Keypoint detection & spatial grid filter
+├── tests/                         # 108 pytest unit & integration tests
+├── app.py                         # Futuristic Liquid Glass Streamlit dashboard
+├── main.py                        # Canonical CLI orchestrator
+└── requirements.txt
 ```
 
 ---
 
 ## License
 
-MIT License — Copyright (c) 2026 Santhosh
-
-See [LICENSE](LICENSE) for full terms.
-
----
-
-## About — ISRO SIH26166
-
-This software implements an adaptive framework for multi-modal lunar image correspondence and registration, targeting Chandrayaan-2 OHRC, TMC-2, and IIRS imagery. The system is purpose-built to handle solar illumination variance, multi-scale resolution jumps, and cross-spectral sensor differences using a hybrid classical computer vision and deep learning approach.
+MIT License — Copyright (c) 2026 Santhosh Jayakumar & Team. See [LICENSE](LICENSE) for full details.

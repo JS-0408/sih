@@ -1,0 +1,159 @@
+{
+  "status": "VALIDATION_FAILURE",
+  "timestamp": "2026-08-28T17:01:06Z",
+  "runtime_seconds": 0.701,
+  "files": {
+    "reference": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_ref.tif",
+    "target": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_tgt.tif",
+    "output": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_SIFT_CLAHE_out.tif"
+  },
+  "preprocessing": {
+    "mode": "clahe"
+  },
+  "tiling": {
+    "tile_size": 512,
+    "overlap": 0.2,
+    "grid": "3x3",
+    "total_tiles": 9
+  },
+  "features": {
+    "detector": "SIFT",
+    "total_gcps_collected": 29,
+    "gcp_inliers": 11,
+    "gcp_model": "homography",
+    "n_subpixel_refined": 0,
+    "subpixel_refine_enabled": false
+  },
+  "metrics": {
+    "fitting_rmse_px": 1.4969,
+    "spatial_coverage": 0.2307,
+    "global_inlier_ratio": 0.7436
+  },
+  "independent_validation": {
+    "n_estimation_points": 22,
+    "n_validation_points": 7,
+    "rmse_px": 9.6021,
+    "median_px": 5.6872,
+    "p95_px": 16.192,
+    "max_px": 17.85,
+    "mean_px": 8.1456,
+    "subpixel_independently_verified": false,
+    "spatial_holdout_used": true,
+    "warning": "P95 validation error 16.192 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  },
+  "evaluation": {
+    "overall_pass": true,
+    "status_message": "PASS",
+    "total_tiles": 9,
+    "successful_tiles": 7,
+    "failed_tiles": 2,
+    "total_raw_matches": 39,
+    "total_inliers": 29,
+    "global_inlier_ratio": 0.7436,
+    "global_rmse_px": 1.4969,
+    "spatial_coverage": 0.2307,
+    "systematic_residual_detected": false,
+    "thresholds": {
+      "min_inliers": 12,
+      "max_rmse_px": 5.0,
+      "min_coverage": 0.15,
+      "min_tile_success_rate": 0.5
+    },
+    "tile_stats": [
+      {
+        "tile_id": "r0_c0",
+        "raw_matches": 4,
+        "inlier_count": 4,
+        "inlier_ratio": 1.0,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r0_c1",
+        "raw_matches": 5,
+        "inlier_count": 4,
+        "inlier_ratio": 0.8,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r0_c2",
+        "raw_matches": 6,
+        "inlier_count": 5,
+        "inlier_ratio": 0.8333,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c0",
+        "raw_matches": 4,
+        "inlier_count": 4,
+        "inlier_ratio": 1.0,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c1",
+        "raw_matches": 5,
+        "inlier_count": 4,
+        "inlier_ratio": 0.8,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c2",
+        "raw_matches": 3,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r2_c0",
+        "raw_matches": 4,
+        "inlier_count": 4,
+        "inlier_ratio": 1.0,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r2_c1",
+        "raw_matches": 6,
+        "inlier_count": 4,
+        "inlier_ratio": 0.6667,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r2_c2",
+        "raw_matches": 2,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      }
+    ],
+    "warnings": []
+  },
+  "homography_matrix": [
+    [
+      1.0005028019321174,
+      -0.0329450219457159,
+      -2.644342691729358
+    ],
+    [
+      0.00012167453449544685,
+      1.0251682720498345,
+      -8.33004814371105
+    ],
+    [
+      -2.6250347667723052e-05,
+      1.977846265748759e-05,
+      0.9999999999999999
+    ]
+  ],
+  "crs_match": true,
+  "warnings": [
+    "P95 validation error 16.192 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  ]
+}

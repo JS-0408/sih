@@ -1,0 +1,165 @@
+{
+  "status": "VALIDATION_FAILURE",
+  "timestamp": "2026-08-28T17:01:16Z",
+  "runtime_seconds": 0.996,
+  "files": {
+    "reference": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\3_viewpoint_affine_ref.tif",
+    "target": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\3_viewpoint_affine_tgt.tif",
+    "output": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\3_viewpoint_affine_SIFT_Gradient_out.tif"
+  },
+  "preprocessing": {
+    "mode": "gradient"
+  },
+  "tiling": {
+    "tile_size": 512,
+    "overlap": 0.2,
+    "grid": "3x3",
+    "total_tiles": 9
+  },
+  "features": {
+    "detector": "SIFT",
+    "total_gcps_collected": 28,
+    "gcp_inliers": 20,
+    "gcp_model": "homography",
+    "n_subpixel_refined": 0,
+    "subpixel_refine_enabled": false
+  },
+  "metrics": {
+    "fitting_rmse_px": 0.5395,
+    "spatial_coverage": 0.098,
+    "global_inlier_ratio": 0.4746
+  },
+  "independent_validation": {
+    "n_estimation_points": 21,
+    "n_validation_points": 7,
+    "rmse_px": 121.6367,
+    "median_px": 1.1644,
+    "p95_px": 226.6917,
+    "max_px": 321.7775,
+    "mean_px": 47.256,
+    "subpixel_independently_verified": false,
+    "spatial_holdout_used": true,
+    "warning": "P95 validation error 226.692 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  },
+  "evaluation": {
+    "overall_pass": false,
+    "status_message": "FAIL \u2014 Spatial coverage 9.8% below minimum 15.0%.; Tile success rate 44.4% below minimum 50.0%.",
+    "total_tiles": 9,
+    "successful_tiles": 4,
+    "failed_tiles": 5,
+    "total_raw_matches": 59,
+    "total_inliers": 28,
+    "global_inlier_ratio": 0.4746,
+    "global_rmse_px": 0.5395,
+    "spatial_coverage": 0.098,
+    "systematic_residual_detected": false,
+    "thresholds": {
+      "min_inliers": 12,
+      "max_rmse_px": 5.0,
+      "min_coverage": 0.15,
+      "min_tile_success_rate": 0.5
+    },
+    "tile_stats": [
+      {
+        "tile_id": "r0_c0",
+        "raw_matches": 0,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r0_c1",
+        "raw_matches": 2,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r0_c2",
+        "raw_matches": 9,
+        "inlier_count": 4,
+        "inlier_ratio": 0.4444,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c0",
+        "raw_matches": 12,
+        "inlier_count": 7,
+        "inlier_ratio": 0.5833,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c1",
+        "raw_matches": 14,
+        "inlier_count": 11,
+        "inlier_ratio": 0.7857,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c2",
+        "raw_matches": 8,
+        "inlier_count": 6,
+        "inlier_ratio": 0.75,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r2_c0",
+        "raw_matches": 0,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r2_c1",
+        "raw_matches": 5,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r2_c2",
+        "raw_matches": 9,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      }
+    ],
+    "warnings": [
+      "Spatial coverage 9.8% below minimum 15.0%.",
+      "Tile success rate 44.4% below minimum 50.0%."
+    ]
+  },
+  "homography_matrix": [
+    [
+      0.9601871163071887,
+      -0.10696366620639827,
+      56.30865970053378
+    ],
+    [
+      0.10486164054482439,
+      0.9684167357502699,
+      -27.800940233062402
+    ],
+    [
+      -6.5373973622817476e-06,
+      6.18966155333167e-06,
+      1.0
+    ]
+  ],
+  "crs_match": true,
+  "warnings": [
+    "Spatial coverage 9.8% is below threshold 15.0%.",
+    "Spatial coverage 9.8% below minimum 15.0%.",
+    "Tile success rate 44.4% below minimum 50.0%.",
+    "P95 validation error 226.692 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  ]
+}

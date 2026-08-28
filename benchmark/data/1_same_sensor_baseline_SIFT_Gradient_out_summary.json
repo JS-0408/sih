@@ -1,0 +1,162 @@
+{
+  "status": "VALIDATION_FAILURE",
+  "timestamp": "2026-08-28T17:01:07Z",
+  "runtime_seconds": 0.764,
+  "files": {
+    "reference": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_ref.tif",
+    "target": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_tgt.tif",
+    "output": "C:\\Users\\jssan\\Documents\\sih\\benchmark\\data\\1_same_sensor_baseline_SIFT_Gradient_out.tif"
+  },
+  "preprocessing": {
+    "mode": "gradient"
+  },
+  "tiling": {
+    "tile_size": 512,
+    "overlap": 0.2,
+    "grid": "3x3",
+    "total_tiles": 9
+  },
+  "features": {
+    "detector": "SIFT",
+    "total_gcps_collected": 64,
+    "gcp_inliers": 43,
+    "gcp_model": "homography",
+    "n_subpixel_refined": 0,
+    "subpixel_refine_enabled": false
+  },
+  "metrics": {
+    "fitting_rmse_px": 0.355,
+    "spatial_coverage": 0.1671,
+    "global_inlier_ratio": 0.7442
+  },
+  "independent_validation": {
+    "n_estimation_points": 48,
+    "n_validation_points": 16,
+    "rmse_px": 5.1485,
+    "median_px": 0.442,
+    "p95_px": 12.1659,
+    "max_px": 16.8516,
+    "mean_px": 2.4171,
+    "subpixel_independently_verified": false,
+    "spatial_holdout_used": true,
+    "warning": "P95 validation error 12.166 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  },
+  "evaluation": {
+    "overall_pass": true,
+    "status_message": "PASS",
+    "total_tiles": 9,
+    "successful_tiles": 6,
+    "failed_tiles": 3,
+    "total_raw_matches": 86,
+    "total_inliers": 64,
+    "global_inlier_ratio": 0.7442,
+    "global_rmse_px": 0.355,
+    "spatial_coverage": 0.1671,
+    "systematic_residual_detected": true,
+    "thresholds": {
+      "min_inliers": 12,
+      "max_rmse_px": 5.0,
+      "min_coverage": 0.15,
+      "min_tile_success_rate": 0.5
+    },
+    "tile_stats": [
+      {
+        "tile_id": "r0_c0",
+        "raw_matches": 4,
+        "inlier_count": 4,
+        "inlier_ratio": 1.0,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r0_c1",
+        "raw_matches": 0,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r0_c2",
+        "raw_matches": 16,
+        "inlier_count": 13,
+        "inlier_ratio": 0.8125,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c0",
+        "raw_matches": 12,
+        "inlier_count": 7,
+        "inlier_ratio": 0.5833,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c1",
+        "raw_matches": 28,
+        "inlier_count": 21,
+        "inlier_ratio": 0.75,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r1_c2",
+        "raw_matches": 18,
+        "inlier_count": 15,
+        "inlier_ratio": 0.8333,
+        "rmse_px": null,
+        "status": "ok"
+      },
+      {
+        "tile_id": "r2_c0",
+        "raw_matches": 0,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r2_c1",
+        "raw_matches": 3,
+        "inlier_count": 0,
+        "inlier_ratio": 0.0,
+        "rmse_px": null,
+        "status": "failed"
+      },
+      {
+        "tile_id": "r2_c2",
+        "raw_matches": 5,
+        "inlier_count": 4,
+        "inlier_ratio": 0.8,
+        "rmse_px": null,
+        "status": "ok"
+      }
+    ],
+    "warnings": [
+      "Systematic residual pattern detected \u2014 global homography may be insufficient. Consider affine model or local piecewise correction."
+    ]
+  },
+  "homography_matrix": [
+    [
+      1.0008741628313806,
+      -0.03500723249114658,
+      -0.30239035139412307
+    ],
+    [
+      0.03545021185241629,
+      1.001988555905217,
+      -7.42322417553509
+    ],
+    [
+      4.881849732217823e-07,
+      1.3503977386395839e-06,
+      0.9999999999999999
+    ]
+  ],
+  "crs_match": true,
+  "warnings": [
+    "Systematic residual pattern detected \u2014 global homography may be insufficient. Consider affine model or local piecewise correction.",
+    "P95 validation error 12.166 px \u2265 1.0 px. Sub-pixel accuracy claim is NOT independently demonstrated."
+  ]
+}

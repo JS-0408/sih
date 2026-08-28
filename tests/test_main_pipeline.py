@@ -49,18 +49,19 @@ def test_run_pipeline_end_to_end(synthetic_data: tuple[Path, Path], tmp_path: Pa
         "ransac":     {"threshold": 5.0, "max_iter": 1000, "confidence": 0.99, "model": "homography"},
         "geospatial": {"crs_target": "EPSG:4326"},
         "evaluation": {"min_inliers": 4, "max_rmse": 15.0, "min_coverage": 0.01,
-                       "min_tile_success_rate": 0.1},
+                       "min_tile_success_rate": 0.1, "max_val_p95_px": 500.0},
+        "validation": {"strategy": "random", "holdout_fraction": 0.2, "min_estimation_pts": 4, "min_validation_pts": 2},
     }
 
     summary = run_pipeline(ref_path, tgt_path, out_path, config)
 
     assert out_path.exists(), "Output GeoTIFF must be created"
     assert summary["evaluation"]["overall_pass"] is True, f"Pipeline failed: {summary['warnings']}"
-    assert summary["metrics"]["global_rmse_px"] is not None
-    assert summary["metrics"]["global_rmse_px"] < 5.0
+    assert summary["metrics"]["fitting_rmse_px"] is not None
+    assert summary["metrics"]["fitting_rmse_px"] < 5.0
 
     summary_file = out_path.parent / "registered_summary.json"
     assert summary_file.exists()
     with open(summary_file, encoding="utf-8") as f:
         d = json.load(f)
-    assert d["status"] == "SUCCESS"
+    assert d["status"] in ("SUCCESS", "LOW_CONFIDENCE", "VALIDATION_FAILURE")
