@@ -26,10 +26,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install system GDAL dependencies
+      - name: Install system GDAL and display dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y libgdal-dev gdal-bin
+          sudo apt-get install -y libgdal-dev gdal-bin libgl1-mesa-glx libglib2.0-0 xvfb
 
       - name: Install Python dependencies
         run: |
@@ -38,13 +38,13 @@ jobs:
 
       - name: Run full pytest suite
         run: |
-          python -m pytest tests/ -v --tb=short --color=yes
+          xvfb-run python -m pytest tests/ -v --tb=short --color=yes
 
       - name: CLI smoke test
         run: |
           python scripts/generate_synthetic_geotiff.py
           python main.py \
-            --reference data/raw/reference.tif \
-            --target data/raw/target.tif \
+            --reference data/reference.tif \
+            --target data/target.tif \
             --output data/processed/ci_registered.tif \
             --config config/pipeline_config.yaml
