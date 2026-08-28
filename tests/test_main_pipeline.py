@@ -27,6 +27,16 @@ def synthetic_data(tmp_path: Path) -> tuple[Path, Path]:
     )
 
 
+def test_create_synthetic_geotiffs_default_output_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    ref_path, tgt_path = create_synthetic_geotiffs(width=128, height=128)
+
+    assert ref_path.resolve() == (tmp_path / "data" / "reference.tif").resolve()
+    assert tgt_path.resolve() == (tmp_path / "data" / "target.tif").resolve()
+    assert ref_path.exists()
+    assert tgt_path.exists()
+
+
 def test_load_config_valid(tmp_path: Path) -> None:
     cfg_file = tmp_path / "c.yaml"
     cfg_file.write_text("keypoints:\n  method: SIFT\n", encoding="utf-8")
