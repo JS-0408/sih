@@ -61,3 +61,11 @@ deep_matching:
   weights_dir: "weights/" # Relative path to model checkpoint directory
   device: "cpu"           # Inference device: "cpu" | "cuda" | "mps"
   half_precision: false   # Use float16 for GPU inference (reduces VRAM usage)
+
+# ── 3D Terrain Mesh Builder ───────────────────────────────────────────────────
+mesh_builder:
+  z_scale: 2.0            # Vertical terrain exaggeration factor (higher = more dramatic)
+  downsample: 4           # Spatial pixel downsampling factor (reduces mesh vertex count)
+  output_file: "data/processed/terrain_3d.html"   # Default HTML export path
+  colormap: "terrain"     # Fallback colormap when no texture image is provided
+
