@@ -1,0 +1,50 @@
+name: CI — Geospatial Registration Pipeline
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Run Test Suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install system GDAL dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libgdal-dev gdal-bin
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run full pytest suite
+        run: |
+          python -m pytest tests/ -v --tb=short --color=yes
+
+      - name: CLI smoke test
+        run: |
+          python scripts/generate_synthetic_geotiff.py
+          python main.py \
+            --reference data/raw/reference.tif \
+            --target data/raw/target.tif \
+            --output data/processed/ci_registered.tif \
+            --config config/pipeline_config.yaml

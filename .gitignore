@@ -1,45 +1,90 @@
-# Virtual environment
-.venv/
-venv/
-env/
+# =============================================================================
+# .gitignore — Yaazhi GeoAlign OS / SIH26166
+# Copyright (c) 2026 Santhosh — MIT License
+# =============================================================================
 
-# Python cache
+# ── Python Cache ──────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.so
+*.egg
 *.egg-info/
 dist/
 build/
-*.egg
+.eggs/
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# ── Model Weights (Large Binary Files) ───────────────────────────────────────
+weights/*.pth
+weights/*.ckpt
+weights/*.bin
+weights/*.safetensors
+weights/*.pt
+# Keep the README describing how to download weights
+!weights/README.md
 
-# Ray
-/tmp/ray/
-ray_results/
+# ── Raw Datasets & Processed Outputs (Large Geospatial Files) ────────────────
+data/raw/*
+data/processed/*
+# Keep the directory structure placeholder files
+!data/raw/.gitkeep
+!data/processed/.gitkeep
 
-# Raster / geospatial data (large files)
+# Legacy data/ and outputs/ folders
+data/*.tif
+data/*.tiff
+data/**/*.tif
+data/**/*.tiff
+outputs/
 *.tif
 *.tiff
 *.geotiff
 *.img
 *.hdf
 *.nc
+*.jp2
 
-# Logs & outputs
-logs/
-*.log
-outputs/
+# ── Secrets & Environment Configuration ──────────────────────────────────────
+.env
+.env.*
+*.secret
+secrets/
+credentials.json
 
-# OS
+# ── IDE & Editor Config ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ── OS Artifacts ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Ray Distributed Compute ───────────────────────────────────────────────────
+/tmp/ray/
+ray_results/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log

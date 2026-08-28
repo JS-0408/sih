@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yaazhi GeoAlign — Geospatial Registration Dashboard</title>
+
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="logo-group">
+      <i class="fa-solid fa-earth-americas logo-icon"></i>
+      <div>
+        <h1>Yaazhi GeoAlign OS</h1>
+        <span class="subtitle">Distributed Sub-Pixel Geospatial Registration Engine</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="status-badge" id="system-status">
+        <i class="fa-solid fa-circle-check"></i> System Ready
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Grid Dashboard -->
+  <main class="dashboard-grid">
+
+    <!-- Left Panel: Control & Parameters -->
+    <section class="card control-card">
+      <h2><i class="fa-solid fa-sliders"></i> Pipeline Parameters</h2>
+      
+      <div class="form-group">
+        <label for="dataset-select"><i class="fa-solid fa-layer-group"></i> Input Scene Dataset</label>
+        <select id="dataset-select" class="form-control">
+          <option value="">Loading datasets...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="detector-select"><i class="fa-solid fa-microchip"></i> Feature Detector Backend</label>
+        <select id="detector-select" class="form-control">
+          <option value="SIFT">SIFT (Scale-Invariant Feature Transform)</option>
+          <option value="ORB">ORB (Oriented FAST and Rotated BRIEF)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-table-cells"></i> Window Tile Size: <span id="tile-size-val">512</span> px</label>
+        <input type="range" id="tile-size-input" min="256" max="1024" step="256" value="512" class="slider">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-bullseye"></i> Max Keypoints / Tile: <span id="kp-val">3000</span></label>
+        <input type="range" id="kp-input" min="1000" max="5000" step="500" value="3000" class="slider">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-shield-halved"></i> RANSAC Threshold: <span id="ransac-val">5.0</span> px</label>
+        <input type="range" id="ransac-input" min="1.0" max="10.0" step="0.5" value="5.0" class="slider">
+      </div>
+
+      <button id="run-btn" class="btn primary-btn">
+        <i class="fa-solid fa-play"></i> Run Registration Engine
+      </button>
+    </section>
+
+    <!-- Center Panel: Interactive Visual Split Comparison Slider -->
+    <section class="card preview-card">
+      <div class="preview-header">
+        <h2><i class="fa-solid fa-eye"></i> Visual Split Alignment Inspector</h2>
+        <div class="view-toggle">
+          <button class="toggle-btn active" id="toggle-split"><i class="fa-solid fa-split"></i> Split Slider</button>
+          <button class="toggle-btn" id="toggle-overlay"><i class="fa-solid fa-clone"></i> Overlay Blend</button>
+        </div>
+      </div>
+
+      <!-- Split Slider Canvas Container -->
+      <div class="image-comparison-container" id="cmp-container">
+        <!-- Target (Before) Image -->
+        <img id="img-before" src="" alt="Target Image (Unregistered)" class="cmp-img before-img">
+        <!-- Registered Output Image -->
+        <div class="img-after-wrapper" id="after-wrapper">
+          <img id="img-after" src="" alt="Registered GeoTIFF Output" class="cmp-img after-img">
+        </div>
+
+        <!-- Slider handle line -->
+        <div class="slider-handle" id="slider-handle">
+          <div class="handle-line"></div>
+          <div class="handle-circle"><i class="fa-solid fa-arrows-left-right"></i></div>
+          <div class="handle-line"></div>
+        </div>
+
+        <div class="label-badge label-left">Target (Before)</div>
+        <div class="label-badge label-right">Registered Output (After)</div>
+
+        <div class="placeholder-overlay" id="placeholder-overlay">
+          <i class="fa-solid fa-map-location-dot placeholder-icon"></i>
+          <p>Select a dataset and click <strong>"Run Registration Engine"</strong> to view real-time sub-pixel spatial alignment.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Live Metrics Dashboard & Summary JSON -->
+    <section class="card metrics-card">
+      <h2><i class="fa-solid fa-chart-column"></i> Registration Metrics & Quality Control</h2>
+
+      <div class="verdict-banner" id="verdict-banner">
+        <div class="verdict-status" id="verdict-status">STANDBY</div>
+        <div class="verdict-sub" id="verdict-sub">Awaiting execution</div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <span class="m-label"><i class="fa-solid fa-ruler-combined"></i> Sub-Pixel RMSE</span>
+          <span class="m-value" id="val-rmse">--</span>
+        </div>
+        <div class="metric-box">
+          <span class="m-label"><i class="fa-solid fa-draw-polygon"></i> Spatial Coverage</span>
+          <span class="m-value" id="val-coverage">--</span>
+        </div>
+        <div class="metric-box">
+          <span class="m-label"><i class="fa-solid fa-crosshairs"></i> GCP Inliers</span>
+          <span class="m-value" id="val-gcps">--</span>
+        </div>
+        <div class="metric-box">
+          <span class="m-label"><i class="fa-solid fa-stopwatch"></i> Execution Time</span>
+          <span class="m-value" id="val-runtime">--</span>
+        </div>
+      </div>
+
+      <div class="matrix-section">
+        <h3><i class="fa-solid fa-cubes"></i> Estimated Homography Matrix</h3>
+        <pre id="matrix-display" class="code-block">[[ 1.0, 0.0, 0.0 ],
+ [ 0.0, 1.0, 0.0 ],
+ [ 0.0, 0.0, 1.0 ]]</pre>
+      </div>
+
+      <div class="download-section" id="download-section" style="display: none;">
+        <a id="download-geotiff" href="#" download class="btn secondary-btn">
+          <i class="fa-solid fa-download"></i> Download Registered GeoTIFF
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

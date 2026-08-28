@@ -1,0 +1,63 @@
+# =============================================================================
+# pipeline_config.yaml — Yaazhi GeoAlign OS Master Configuration
+# Copyright (c) 2026 Santhosh — MIT License
+#
+# Central configuration for the Chandrayaan-2 Image Registration Pipeline.
+# All runtime parameters are controlled here. Restart the pipeline to apply.
+# =============================================================================
+
+# ── Tiling Strategy ───────────────────────────────────────────────────────────
+tiling:
+  tile_size: 512          # Window tile edge length in pixels
+  overlap_pct: 0.20       # Fractional spatial overlap between tiles (0.0–1.0)
+
+# ── Keypoint Detection ────────────────────────────────────────────────────────
+keypoints:
+  method: "SIFT"          # Feature detector backend: "SIFT" or "ORB"
+  max_keypoints: 5000     # Maximum raw keypoints per tile before spatial pruning
+  grid_cells: 16          # NxN spatial grid cells for uniform tie-point filtering
+
+# ── FLANN Feature Matching ────────────────────────────────────────────────────
+flann:
+  trees: 5                # KD-tree count (higher = more accurate index)
+  checks: 50              # FLANN search checks (higher = more thorough)
+  ratio_threshold: 0.75   # Lowe's ratio test threshold (0.0–1.0)
+
+# ── RANSAC Geometric Verification ────────────────────────────────────────────
+ransac:
+  model: "homography"     # Transformation model: homography | affine | similarity | translation
+  threshold: 5.0          # Maximum reprojection error in pixels for inlier classification
+  max_iter: 2000          # Maximum RANSAC iteration budget
+  confidence: 0.995       # Required confidence level for early termination
+
+# ── Geospatial Coordinate System ─────────────────────────────────────────────
+geospatial:
+  crs_target: "EPSG:4326" # Target coordinate reference system (auto-detected if null)
+  bands: null             # Band indices to load (null = all bands)
+
+# ── Quality Gate & Evaluation Thresholds ─────────────────────────────────────
+evaluation:
+  min_inliers: 4          # Minimum GCP inlier count to pass quality gate
+  max_rmse: 15.0          # Maximum acceptable global RMSE in pixels
+  min_coverage: 0.05      # Minimum spatial convex hull coverage (0.0–1.0)
+  min_tile_success_rate: 0.30 # Minimum fraction of tiles that must succeed
+
+# ── Output & Metrics ─────────────────────────────────────────────────────────
+metrics:
+  rmse_unit: "pixels"     # RMSE reporting unit: "pixels" or "meters"
+  compress: "lzw"         # Output GeoTIFF compression codec
+  output_dir: "data/processed/"  # Default output raster directory
+
+# ── Ray Distributed Compute ───────────────────────────────────────────────────
+ray:
+  head_ip: "auto"         # "auto" for local execution; explicit IP for cluster
+  num_cpus: null          # CPU core count override (null = auto-detect)
+  num_gpus: null          # GPU count override (null = auto-detect)
+  dashboard_port: 8265    # Ray dashboard web port
+
+# ── Deep Learning Matching (Optional) ────────────────────────────────────────
+deep_matching:
+  enabled: false          # Set true to use SuperPoint+LightGlue (requires torch + weights)
+  weights_dir: "weights/" # Relative path to model checkpoint directory
+  device: "cpu"           # Inference device: "cpu" | "cuda" | "mps"
+  half_precision: false   # Use float16 for GPU inference (reduces VRAM usage)

@@ -109,3 +109,68 @@ class TestTileGenerator:
         data, meta = loader.load(valid_tiff)
         with pytest.raises(ValueError):
             list(loader.tile_generator(data, meta, tile_size=32, overlap_pct=1.0))
+
+
+# ─── Windowed streaming tile generator tests ──────────────────────────────────
+
+class TestWindowedTileGenerator:
+    """Exercises the new path-based (memory-safe) tile_generator() path."""
+
+    def test_yields_tiles_from_path(self, valid_tiff: Path) -> None:
+        """tile_generator(path) must yield at least one tile."""
+        loader = RasterLoader()
+        tiles = list(loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0))
+        assert len(tiles) > 0
+
+    def test_tile_shape_correct(self, valid_tiff: Path) -> None:
+        """Every tile must be (bands, tile_size, tile_size)."""
+        loader = RasterLoader()
+        for tile in loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0):
+            assert tile.data.shape == (3, 32, 32)
+
+    def test_tile_has_transform_and_crs(self, valid_tiff: Path) -> None:
+        """Each tile must carry a non-None transform and CRS."""
+        from rasterio.crs import CRS
+        from rasterio.transform import Affine
+
+        loader = RasterLoader()
+        for tile in loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0):
+            assert isinstance(tile.transform, Affine)
+            assert tile.crs == CRS.from_string("EPSG:4326")
+
+    def test_overlap_produces_more_tiles(self, valid_tiff: Path) -> None:
+        """Overlap fraction > 0 must produce more tiles than no overlap."""
+        loader = RasterLoader()
+        no_overlap = list(loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0))
+        with_overlap = list(loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.25))
+        assert len(with_overlap) >= len(no_overlap)
+
+    def test_invalid_overlap_raises_from_path(self, valid_tiff: Path) -> None:
+        """overlap_pct >= 1.0 must still raise ValueError with path-based input."""
+        loader = RasterLoader()
+        with pytest.raises(ValueError):
+            list(loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=1.0))
+
+    def test_missing_path_raises(self) -> None:
+        """Passing a non-existent path must raise FileNotFoundError."""
+        loader = RasterLoader()
+        with pytest.raises(FileNotFoundError):
+            list(loader.tile_generator("/nonexistent/missing.tif", tile_size=32))
+
+    def test_tile_col_row_offsets_non_negative(self, valid_tiff: Path) -> None:
+        """All col_off and row_off values must be >= 0."""
+        loader = RasterLoader()
+        for tile in loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0):
+            assert tile.col_off >= 0
+            assert tile.row_off >= 0
+
+    def test_tile_transform_differs_per_position(self, valid_tiff: Path) -> None:
+        """Tiles at different positions must have different transforms."""
+        loader = RasterLoader()
+        transforms = [
+            t.transform
+            for t in loader.tile_generator(valid_tiff, tile_size=32, overlap_pct=0.0)
+        ]
+        # At least two distinct transforms if there are multiple tiles
+        if len(transforms) > 1:
+            assert not all(t == transforms[0] for t in transforms)

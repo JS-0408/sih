@@ -51,14 +51,16 @@ class KeypointDetector:
         """
         if image.ndim == 2:
             gray = image
-        elif image.ndim == 3 and image.shape[0] in (1, 3, 4):
-            # (C, H, W) layout — common for rasterio output
-            gray = np.moveaxis(image, 0, -1)
+        elif image.ndim == 3 and image.shape[0] == 1:
+            gray = image[0]
+        elif image.ndim == 3 and image.shape[0] in (3, 4):
+            gray = cv2.cvtColor(np.moveaxis(image, 0, -1).astype(np.uint8), cv2.COLOR_BGR2GRAY)
+        elif image.ndim == 3 and image.shape[2] in (3, 4):
+            gray = cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2GRAY)
+        elif image.ndim == 3 and image.shape[2] == 1:
+            gray = image[:, :, 0]
         else:
             gray = image
-
-        if gray.ndim == 3:
-            gray = cv2.cvtColor(gray.astype(np.uint8), cv2.COLOR_BGR2GRAY)
 
         # Normalise to uint8 if float or 16-bit
         if gray.dtype != np.uint8:
