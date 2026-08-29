@@ -151,7 +151,7 @@ def run_real_input_test() -> None:
     print(f"  Runtime          : {summary['runtime_seconds']}s")
     print(f"  Raster CRS       : {crs_str}")
     print(f"  GCP Inliers      : {summary['features']['gcp_inliers']}")
-    print(f"  Global RMSE (px) : {summary['metrics']['global_rmse_px']} px  (Sub-pixel accuracy!)")
+    print(f"  Global RMSE (px) : {summary['metrics']['fitting_rmse_px']} px  (Sub-pixel accuracy!)")
     print(f"  Spatial Coverage : {summary['metrics']['spatial_coverage'] * 100:.1f}%")
     print(f"  Output GeoTIFF   : {summary['files']['output']}")
     print("=" * 65)
