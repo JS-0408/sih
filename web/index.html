@@ -1,158 +1,267 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yaazhi GeoAlign — Geospatial Registration Dashboard</title>
-
-  <!-- Google Fonts & Font Awesome Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yaazhi GeoAlign OS — ISRO SIH26166 Registration Console</title>
+<meta name="description" content="Multi-modal geospatial image registration console for Chandrayaan-2 OHRC, TMC-2, IIRS and Sentinel-2 imagery.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Top Navigation Header -->
-  <header class="app-header">
-    <div class="logo-group">
-      <i class="fa-solid fa-earth-americas logo-icon"></i>
-      <div>
-        <h1>Yaazhi GeoAlign OS</h1>
-        <span class="subtitle">Distributed Sub-Pixel Geospatial Registration Engine</span>
-      </div>
+<div class="ambient-bg" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar__mark">
+    <div class="topbar__logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+        <polyline points="2 17 12 22 22 17"></polyline>
+        <polyline points="2 12 12 17 22 12"></polyline>
+      </svg>
     </div>
-    <div class="header-actions">
-      <span class="status-badge" id="system-status">
-        <i class="fa-solid fa-circle-check"></i> System Ready
+    <div class="topbar__wordmark">
+      <span class="topbar__title">Yaazhi GeoAlign OS</span>
+      <span class="topbar__subtitle">ISRO SIH26166 · Mission Control</span>
+    </div>
+  </div>
+
+  <nav class="topbar__sensors" aria-label="Supported sensors">
+    <span class="sensor-chip" data-sensor="ohr">OHRC <em>0.32m</em></span>
+    <span class="sensor-chip" data-sensor="tmc">TMC-2 <em>5m</em></span>
+    <span class="sensor-chip" data-sensor="iir">IIRS <em>80m</em></span>
+    <span class="sensor-chip" data-sensor="s2">Sentinel-2 <em>10m</em></span>
+  </nav>
+
+  <div class="topbar__actions">
+    <span class="status-pill" id="engine-status" data-state="idle">
+      <span class="status-pill__dot"></span>
+      <span class="status-pill__label">Engine ready</span>
+    </span>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch theme">
+      <span class="theme-toggle__track">
+        <span class="theme-toggle__thumb"></span>
       </span>
+      <span class="theme-toggle__text" id="theme-toggle-text">Light</span>
+    </button>
+  </div>
+</header>
+
+<main class="console">
+
+  <!-- ============ HERO / STAGE ============ -->
+  <section class="stage" id="stage">
+
+    <div class="dropzone" id="dropzone" tabindex="0" role="button"
+         aria-label="Drop calibrated sensor images, or click to browse">
+      <input type="file" id="file-input" multiple hidden
+             accept=".img,.tif,.tiff,.geotiff,.xml,.jp2,.png,.jpg,.jpeg">
+
+      <div class="dropzone__idle" id="dropzone-idle">
+        <div class="dropzone__icon-wrapper">
+          <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <h1 class="dropzone__headline">Drop calibrated frames to align</h1>
+        <p class="dropzone__hint">
+          Drop two or more rasters — same sensor or cross-sensor. Automatic PDS4 identification:
+          <code>ch2_ohr_ncp_…</code>, <code>ch2_tmc_…</code>, <code>ch2_iir_…</code>, <code>Sentinel-2</code>, or GeoTIFF.
+        </p>
+        <div class="dropzone__action-row">
+          <span class="dropzone__or">or</span>
+          <button class="btn btn--ghost" id="browse-btn" type="button">Browse files</button>
+        </div>
+      </div>
+
     </div>
-  </header>
 
-  <!-- Main Grid Dashboard -->
-  <main class="dashboard-grid">
-
-    <!-- Left Panel: Control & Parameters -->
-    <section class="card control-card">
-      <h2><i class="fa-solid fa-sliders"></i> Pipeline Parameters</h2>
-      
-      <div class="form-group">
-        <label for="dataset-select"><i class="fa-solid fa-layer-group"></i> Input Scene Dataset</label>
-        <select id="dataset-select" class="form-control">
-          <option value="">Loading datasets...</option>
-        </select>
+    <!-- ============ FILE MANIFEST ============ -->
+    <div class="manifest" id="manifest" hidden>
+      <div class="manifest__head">
+        <div class="manifest__title-group">
+          <h2 class="manifest__title">Input Manifest</h2>
+          <span class="manifest__count-tag" id="manifest-count">0 files</span>
+        </div>
+        <span class="manifest__mode" id="manifest-mode">—</span>
       </div>
 
-      <div class="form-group">
-        <label for="detector-select"><i class="fa-solid fa-microchip"></i> Feature Detector Backend</label>
-        <select id="detector-select" class="form-control">
-          <option value="SIFT">SIFT (Scale-Invariant Feature Transform)</option>
-          <option value="ORB">ORB (Oriented FAST and Rotated BRIEF)</option>
-        </select>
-      </div>
+      <ul class="manifest__list" id="manifest-list"></ul>
 
-      <div class="form-group">
-        <label><i class="fa-solid fa-table-cells"></i> Window Tile Size: <span id="tile-size-val">512</span> px</label>
-        <input type="range" id="tile-size-input" min="256" max="1024" step="256" value="512" class="slider">
+      <div class="manifest__foot">
+        <button class="btn btn--text" id="add-more-btn" type="button">+ Add more frames</button>
+        <button class="btn btn--text btn--danger" id="clear-btn" type="button">Clear all</button>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label><i class="fa-solid fa-bullseye"></i> Max Keypoints / Tile: <span id="kp-val">3000</span></label>
-        <input type="range" id="kp-input" min="1000" max="5000" step="500" value="3000" class="slider">
+    <!-- ============ RUN CONTROL ============ -->
+    <div class="run-bar" id="run-bar" hidden>
+      <div class="run-bar__config">
+        <label class="field">
+          <span class="field__label">Detector</span>
+          <select id="cfg-detector" class="field__select">
+            <option value="SIFT" selected>SIFT (Sub-pixel scale-invariant)</option>
+            <option value="ORB">ORB (Fast binary keypoints)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Model</span>
+          <select id="cfg-model" class="field__select">
+            <option value="homography" selected>Homography (Planar projective)</option>
+            <option value="affine">Affine (6-param shear & scale)</option>
+            <option value="similarity">Similarity (Rigid 4-param)</option>
+          </select>
+        </label>
+        <label class="field field--checkbox">
+          <input type="checkbox" id="cfg-deep" class="field__checkbox">
+          <span class="field__label">Deep matcher (SuperPoint + LightGlue)</span>
+        </label>
       </div>
-
-      <div class="form-group">
-        <label><i class="fa-solid fa-shield-halved"></i> RANSAC Threshold: <span id="ransac-val">5.0</span> px</label>
-        <input type="range" id="ransac-input" min="1.0" max="10.0" step="0.5" value="5.0" class="slider">
-      </div>
-
-      <button id="run-btn" class="btn primary-btn">
-        <i class="fa-solid fa-play"></i> Run Registration Engine
+      <button class="btn btn--primary btn--run" id="run-btn" type="button">
+        <span class="btn__spinner"></span>
+        <span class="btn__label">Run registration</span>
       </button>
-    </section>
+    </div>
 
-    <!-- Center Panel: Interactive Visual Split Comparison Slider -->
-    <section class="card preview-card">
-      <div class="preview-header">
-        <h2><i class="fa-solid fa-eye"></i> Visual Split Alignment Inspector</h2>
-        <div class="view-toggle">
-          <button class="toggle-btn active" id="toggle-split"><i class="fa-solid fa-split"></i> Split Slider</button>
-          <button class="toggle-btn" id="toggle-overlay"><i class="fa-solid fa-clone"></i> Overlay Blend</button>
+    <!-- ============ PROGRESS BAR ============ -->
+    <div class="progress" id="progress" hidden>
+      <div class="progress__head">
+        <span class="progress__stage" id="progress-stage">Initializing pipeline engine…</span>
+        <span class="progress__pulse">LIVE PROCESSING</span>
+      </div>
+      <div class="progress__bar">
+        <div class="progress__fill" id="progress-fill"></div>
+      </div>
+      <div class="progress__pipeline" id="progress-pipeline">
+        <span data-step="io">Headers</span>
+        <span data-step="tiling">Tiling</span>
+        <span data-step="features">Features</span>
+        <span data-step="matching">Matching</span>
+        <span data-step="ransac">RANSAC</span>
+        <span data-step="gcp">GCP</span>
+        <span data-step="warp">Sub-pixel</span>
+        <span data-step="quality">Quality</span>
+      </div>
+    </div>
+
+
+
+  </section>
+
+  <!-- ============ RESULTS STAGE ============ -->
+  <section class="results" id="results" hidden>
+
+    <!-- BANNER -->
+    <div class="results__banner" id="results-banner" data-status="pass">
+      <div class="results__banner-status">
+        <div class="results__banner-icon" id="results-banner-icon">✓</div>
+        <div>
+          <h2 class="results__banner-title" id="results-banner-title">Quality gate passed</h2>
+          <p class="results__banner-sub" id="results-banner-sub">RMSE and coverage within threshold across all tiles.</p>
+        </div>
+      </div>
+      <button class="btn btn--ghost btn--sm" id="download-report-btn" type="button">Download report JSON</button>
+    </div>
+
+    <!-- METRICS GRID -->
+    <div class="metric-grid">
+      <div class="metric">
+        <span class="metric__label">FITTING RMSE</span>
+        <div class="metric__value"><span id="metric-rmse">—</span> <span class="metric__unit">px</span></div>
+        <div class="metric__bar"><div class="metric__bar-fill" id="metric-rmse-bar"></div></div>
+      </div>
+      <div class="metric">
+        <span class="metric__label">SPATIAL COVERAGE</span>
+        <div class="metric__value"><span id="metric-coverage">—</span> <span class="metric__unit">%</span></div>
+        <div class="metric__bar"><div class="metric__bar-fill" id="metric-coverage-bar"></div></div>
+      </div>
+      <div class="metric">
+        <span class="metric__label">GCP INLIERS</span>
+        <div class="metric__value"><span id="metric-inliers">—</span> <span class="metric__unit">pts</span></div>
+        <div class="metric__bar"><div class="metric__bar-fill" id="metric-inliers-bar"></div></div>
+      </div>
+      <div class="metric">
+        <span class="metric__label">EXECUTION TIME</span>
+        <div class="metric__value"><span id="metric-time">—</span> <span class="metric__unit">s</span></div>
+        <div class="metric__bar"><div class="metric__bar-fill" id="metric-time-bar"></div></div>
+      </div>
+    </div>
+
+    <!-- LOWER GRID: PREVIEW & DETAILS -->
+    <div class="results__lower">
+      <!-- PREVIEW PANEL -->
+      <div class="panel">
+        <div class="panel__head">
+          <h3 class="panel__title">Registered Output Preview</h3>
+          <div class="preview-toggle">
+            <button class="preview-toggle__btn is-active" data-view="overlay" type="button">Overlay</button>
+            <button class="preview-toggle__btn" data-view="side" type="button">Side-by-side</button>
+          </div>
+        </div>
+        <div class="preview" id="preview-container">
+          <span class="preview__placeholder" id="preview-placeholder">Preview renders here after a run.</span>
+          <img class="preview__img preview__img--ref" id="preview-ref" alt="Reference image preview" hidden>
+          <img class="preview__img preview__img--reg" id="preview-reg" alt="Registered image preview" hidden>
         </div>
       </div>
 
-      <!-- Split Slider Canvas Container -->
-      <div class="image-comparison-container" id="cmp-container">
-        <!-- Target (Before) Image -->
-        <img id="img-before" src="" alt="Target Image (Unregistered)" class="cmp-img before-img">
-        <!-- Registered Output Image -->
-        <div class="img-after-wrapper" id="after-wrapper">
-          <img id="img-after" src="" alt="Registered GeoTIFF Output" class="cmp-img after-img">
+      <!-- RUN DETAIL PANEL -->
+      <div class="panel">
+        <div class="panel__head">
+          <h3 class="panel__title">Run Parameters & Summary</h3>
         </div>
-
-        <!-- Slider handle line -->
-        <div class="slider-handle" id="slider-handle">
-          <div class="handle-line"></div>
-          <div class="handle-circle"><i class="fa-solid fa-arrows-left-right"></i></div>
-          <div class="handle-line"></div>
-        </div>
-
-        <div class="label-badge label-left">Target (Before)</div>
-        <div class="label-badge label-right">Registered Output (After)</div>
-
-        <div class="placeholder-overlay" id="placeholder-overlay">
-          <i class="fa-solid fa-map-location-dot placeholder-icon"></i>
-          <p>Select a dataset and click <strong>"Run Registration Engine"</strong> to view real-time sub-pixel spatial alignment.</p>
-        </div>
+        <table class="detail-table">
+          <tbody>
+            <tr><th>Sensor pair</th><td id="dt-sensor-pair">—</td></tr>
+            <tr><th>Registration mode</th><td id="dt-mode">—</td></tr>
+            <tr><th>Feature detector</th><td id="dt-detector">—</td></tr>
+            <tr><th>Transform model</th><td id="dt-model">—</td></tr>
+            <tr><th>Spatial tile grid</th><td id="dt-tiles">—</td></tr>
+            <tr><th>GCPs (ref / tgt)</th><td id="dt-keypoints">—</td></tr>
+            <tr><th>Lowe ratio threshold</th><td id="dt-ratio">—</td></tr>
+            <tr><th>Min inliers required</th><td id="dt-min-inliers">—</td></tr>
+            <tr><th>Max RMSE threshold</th><td id="dt-max-rmse">—</td></tr>
+            <tr><th>Output resolution</th><td id="dt-resolution">—</td></tr>
+          </tbody>
+        </table>
       </div>
-    </section>
+    </div>
 
-    <!-- Right Panel: Live Metrics Dashboard & Summary JSON -->
-    <section class="card metrics-card">
-      <h2><i class="fa-solid fa-chart-column"></i> Registration Metrics & Quality Control</h2>
-
-      <div class="verdict-banner" id="verdict-banner">
-        <div class="verdict-status" id="verdict-status">STANDBY</div>
-        <div class="verdict-sub" id="verdict-sub">Awaiting execution</div>
+    <!-- TILE DIAGNOSTICS & LOG -->
+    <div class="results__lower">
+      <div class="panel panel--tiles">
+        <div class="panel__head">
+          <h3 class="panel__title">Tile-Level Inlier Density</h3>
+          <span class="panel__note">Spatial tile inlier ratio map</span>
+        </div>
+        <div class="tile-grid" id="tile-grid"></div>
       </div>
 
-      <div class="metrics-grid">
-        <div class="metric-box">
-          <span class="m-label"><i class="fa-solid fa-ruler-combined"></i> Sub-Pixel RMSE</span>
-          <span class="m-value" id="val-rmse">--</span>
+      <div class="panel panel--log">
+        <div class="panel__head">
+          <h3 class="panel__title">Pipeline Log Output</h3>
+          <button class="btn btn--ghost btn--xs" id="copy-log-btn" type="button">Copy log</button>
         </div>
-        <div class="metric-box">
-          <span class="m-label"><i class="fa-solid fa-draw-polygon"></i> Spatial Coverage</span>
-          <span class="m-value" id="val-coverage">--</span>
-        </div>
-        <div class="metric-box">
-          <span class="m-label"><i class="fa-solid fa-crosshairs"></i> GCP Inliers</span>
-          <span class="m-value" id="val-gcps">--</span>
-        </div>
-        <div class="metric-box">
-          <span class="m-label"><i class="fa-solid fa-stopwatch"></i> Execution Time</span>
-          <span class="m-value" id="val-runtime">--</span>
-        </div>
+        <pre class="log" id="log-output">Awaiting pipeline run execution…</pre>
       </div>
+    </div>
 
-      <div class="matrix-section">
-        <h3><i class="fa-solid fa-cubes"></i> Estimated Homography Matrix</h3>
-        <pre id="matrix-display" class="code-block">[[ 1.0, 0.0, 0.0 ],
- [ 0.0, 1.0, 0.0 ],
- [ 0.0, 0.0, 1.0 ]]</pre>
-      </div>
+  </section>
 
-      <div class="download-section" id="download-section" style="display: none;">
-        <a id="download-geotiff" href="#" download class="btn secondary-btn">
-          <i class="fa-solid fa-download"></i> Download Registered GeoTIFF
-        </a>
-      </div>
-    </section>
+</main>
 
-  </main>
+<footer class="footer">
+  <div class="footer__inner">
+    <span>Yaazhi GeoAlign OS · ISRO SIH26166 Multi-Modal Image Registration Pipeline</span>
+    <span class="footer__tag">Phase 11 Production Quality Gate Engine</span>
+  </div>
+</footer>
 
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

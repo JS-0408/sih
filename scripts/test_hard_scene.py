@@ -134,7 +134,7 @@ def run_hard_test() -> None:
     print(f"  Tiles Processed  : {summary['tiling']['grid']} ({summary['tiling']['total_tiles']} tiles)")
     print(f"  GCPs Collected   : {summary['features']['total_gcps_collected']}")
     print(f"  GCP Inliers      : {summary['features']['gcp_inliers']}")
-    print(f"  Global RMSE (px) : {summary['metrics']['global_rmse_px']} px")
+    print(f"  Global RMSE (px) : {summary['metrics']['fitting_rmse_px']} px")
     print(f"  Spatial Coverage : {summary['metrics']['spatial_coverage'] * 100:.1f}%")
     print(f"  Output GeoTIFF   : {summary['files']['output']}")
     print("=" * 60)
