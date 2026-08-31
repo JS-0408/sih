@@ -115,13 +115,22 @@ def get_datasets():
     """List available GeoTIFF reference/target test pairs in data/ directory."""
     datasets = []
 
-    # 1. Standard synthetic pair
-    if (DATA_DIR / "reference.tif").exists() and (DATA_DIR / "target.tif").exists():
+    # 1. Standard synthetic pair (Auto-generate if missing on a new system)
+    ref_synthetic = DATA_DIR / "reference.tif"
+    tgt_synthetic = DATA_DIR / "target.tif"
+    if not ref_synthetic.exists() or not tgt_synthetic.exists():
+        try:
+            from scripts.generate_synthetic_geotiff import create_synthetic_geotiffs
+            create_synthetic_geotiffs(output_dir=DATA_DIR)
+        except Exception as err:
+            logger.warning(f"Could not auto-generate synthetic dataset: {err}")
+
+    if ref_synthetic.exists() and tgt_synthetic.exists():
         datasets.append({
             "id": "synthetic",
             "name": "Standard Synthetic Pair (1024×1024 uint8)",
-            "reference": str(DATA_DIR / "reference.tif"),
-            "target":    str(DATA_DIR / "target.tif"),
+            "reference": str(ref_synthetic),
+            "target":    str(tgt_synthetic),
         })
 
     # 2. Hard 2K pair
