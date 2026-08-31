@@ -396,8 +396,8 @@ def get_image_preview():
         return jsonify({"error": "File not found"}), 404
 
     try:
-        loader = RasterLoader()
-        arr, _ = loader.load(path_str)
+        with rasterio.open(path_str) as ds:
+            arr = ds.read()
 
         if arr.ndim == 3 and arr.shape[0] in (1, 3, 4):
             img = np.moveaxis(arr, 0, -1)
