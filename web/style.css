@@ -1140,6 +1140,54 @@ html[data-theme="dark"] .theme-toggle__thumb {
   white-space: pre-wrap;
 }
 
+/* ============================== DEDICATED RUN DIAGNOSTIC NOTICE BOX ====== */
+
+.run-notice {
+  margin-top: 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.run-notice__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.run-notice__body { flex: 1; }
+
+.run-notice__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.run-notice__detail {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
 /* ============================== FOOTER ================================== */
 
 .footer {

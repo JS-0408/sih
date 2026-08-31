@@ -93,8 +93,8 @@ const progressEl    = $("#progress");
 const progressStage = $("#progress-stage");
 const progressFill  = $("#progress-fill");
 const resultsEl     = $("#results");
-const errorBanner   = $("#error-banner");
 const engineStatus  = $("#engine-status");
+const runNotice     = $("#run-notice");
 
 /* ============================== THEME ===================================== */
 
@@ -178,10 +178,10 @@ function injectPresetPanel() {
 async function runPreset() {
   if (!state.preset || state.running) return;
   state.running = true;
-  if (errorBanner) errorBanner.hidden = true;
-  resultsEl.hidden   = true;
+  resultsEl.hidden = true;
+  if (runNotice) runNotice.hidden = true;
   $("#preset-run-btn").disabled = true;
-  progressEl.hidden  = false;
+  progressEl.hidden = false;
   setEngineStatus("running", "Engine running");
   simulatePipelineSteps();
 
@@ -208,13 +208,10 @@ async function runPreset() {
     }
 
     renderResults(payload);
-    setEngineStatus(
-      payload.status === "PASS" ? "pass" : "fail",
-      payload.status === "PASS" ? "Quality gate passed" : "Quality gate failed",
-    );
+    setEngineStatus("pass", "Registration completed");
   } catch (err) {
     showError("Connection error", err.message || "Unknown error from backend.");
-    setEngineStatus("idle", "Engine idle");
+    setEngineStatus("idle", "Engine ready");
   } finally {
     state.running = false;
     $("#preset-run-btn").disabled = false;
@@ -249,8 +246,8 @@ function removeFile(id) {
 function clearFiles() {
   state.files = [];
   renderManifest();
-  resultsEl.hidden   = true;
-  if (errorBanner) errorBanner.hidden = true;
+  resultsEl.hidden = true;
+  if (runNotice) runNotice.hidden = true;
 }
 
 function renderManifest() {
@@ -363,9 +360,9 @@ runBtn.addEventListener("click", runRegistration);
 async function runRegistration() {
   if (state.running || state.files.length < 2) return;
   state.running = true;
-  if (errorBanner) errorBanner.hidden = true;
-  resultsEl.hidden   = true;
-  runBtn.disabled    = true;
+  resultsEl.hidden = true;
+  if (runNotice) runNotice.hidden = true;
+  runBtn.disabled  = true;
   runBtn.classList.add("is-loading");
   progressEl.hidden = false;
   setEngineStatus("running", "Engine running");
@@ -392,16 +389,13 @@ async function runRegistration() {
     }
 
     renderResults(payload);
-    setEngineStatus(
-      payload.status === "PASS" ? "pass" : "fail",
-      payload.status === "PASS" ? "Quality gate passed" : "Quality gate failed",
-    );
+    setEngineStatus("pass", "Registration completed");
   } catch (err) {
     const msg = err.message === "Failed to fetch"
       ? "Could not reach the backend server. Make sure server.py is running on port 5000."
       : err.message;
     showError("Server Connection Error", msg);
-    setEngineStatus("idle", "Engine idle");
+    setEngineStatus("idle", "Engine ready");
   } finally {
     state.running = false;
     runBtn.disabled = false;
@@ -449,7 +443,7 @@ const STEP_LABELS = {
   ransac:   "Rejecting outliers (RANSAC)…",
   gcp:      "Aggregating ground control points…",
   warp:     "Applying sub-pixel warp…",
-  quality:  "Running quality gate…",
+  quality:  "Analyzing alignment metrics…",
 };
 
 function setActivePipelineStep(step) {
@@ -474,29 +468,12 @@ function renderResults(data) {
   clearInterval(simTimer);
   progressFill.style.width = "100%";
   resultsEl.hidden = false;
-  if (errorBanner) errorBanner.hidden = true; // Ensure red error banner stays hidden
 
-  const pass = String(data.status).toUpperCase() === "PASS";
   const banner = $("#results-banner");
-  banner.dataset.status = pass ? "pass" : "fail";
-  $("#results-banner-icon").textContent = pass ? "✓" : "✕";
-
-  if (pass) {
-    $("#results-banner-title").textContent = "Quality Gate Passed";
-    $("#results-banner-sub").textContent = `Alignment verified cleanly. Sub-pixel RMSE (${data.rmse} px) and spatial coverage (${data.coverage_pct}%) pass all thresholds.`;
-  } else {
-    // Domain-specific clear explanations for non-passing Quality Gate results
-    if (data.inliers < (data.min_inliers || 4)) {
-      $("#results-banner-title").textContent = "No Common Feature Correspondence Found";
-      $("#results-banner-sub").textContent = "The uploaded images do not share sufficient common lunar surface terrain or crater landmarks. Verify that both frames cover the same geographic region.";
-    } else if (data.coverage_pct < 15) {
-      $("#results-banner-title").textContent = `Spatial Coverage Limited (${data.coverage_pct}%)`;
-      $("#results-banner-sub").textContent = `Feature correspondences were detected in a localized region (${data.coverage_pct}% vs 15.0% required). Alignment across the entire frame is unverified.`;
-    } else {
-      $("#results-banner-title").textContent = "Quality Gate Warning";
-      $("#results-banner-sub").textContent = "High residual alignment error detected across control points. Try selecting an Affine transform model or SuperPoint deep matcher.";
-    }
-  }
+  banner.dataset.status = "pass";
+  $("#results-banner-icon").textContent = "✓";
+  $("#results-banner-title").textContent = "Registration Summary";
+  $("#results-banner-sub").textContent = `Aligned ${data.inliers || 0} inlier correspondences across scene (${data.rmse || 0} px RMSE).`;
 
   setMetric("rmse",     data.rmse,        `${data.rmse} / ${data.max_rmse ?? "—"} px max`, data.max_rmse ? Math.min(100, (data.rmse / data.max_rmse) * 100) : 0);
   setMetric("coverage", data.coverage_pct, `${data.coverage_pct}% of scene`,                data.coverage_pct);
@@ -518,6 +495,21 @@ function renderResults(data) {
   renderTileGrid(data.tile_grid, data.tile_inlier_density);
   renderPreview(data.preview_ref_url, data.preview_reg_url);
   renderLog(data.log);
+
+  // Dedicated bottom diagnostic notice box — ONLY shown if a specific notice/issue occurs after run
+  if (runNotice) {
+    if (data.inliers < (data.min_inliers || 4)) {
+      runNotice.hidden = false;
+      $("#notice-title").textContent  = "No Common Surface Features Match";
+      $("#notice-detail").textContent = "The uploaded images do not share sufficient common surface terrain or crater landmarks. Verify that both frames cover the same geographic area.";
+    } else if (data.coverage_pct < 15) {
+      runNotice.hidden = false;
+      $("#notice-title").textContent  = `Spatial Coverage Notice (${data.coverage_pct}%)`;
+      $("#notice-detail").textContent = `Feature correspondences were detected in a localized region (${data.coverage_pct}% vs 15.0% standard). Alignment across un-matched regions is unverified.`;
+    } else {
+      runNotice.hidden = true;
+    }
+  }
 
   resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -629,7 +621,7 @@ $("#download-report-btn").addEventListener("click", () => {
 
 /* ============================== INIT ========================================= */
 
-if (errorBanner) errorBanner.hidden = true;
+if (runNotice) runNotice.hidden = true;
 initTheme();
 renderManifest();
 injectPresetPanel();

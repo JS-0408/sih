@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yaazhi GeoAlign OS — ISRO SIH26166 Registration Console</title>
-<meta name="description" content="Multi-modal geospatial image registration console for Chandrayaan-2 OHRC, TMC-2, IIRS and Sentinel-2 imagery.">
+<title>Yaazhi GeoAlign OS — Geospatial Image Registration Console</title>
+<meta name="description" content="Multi-modal geospatial image registration console for Chandrayaan OHRC, TMC-2, IIRS and Sentinel-2 imagery.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
     </div>
     <div class="topbar__wordmark">
       <span class="topbar__title">Yaazhi GeoAlign OS</span>
-      <span class="topbar__subtitle">ISRO SIH26166 · Mission Control</span>
+      <span class="topbar__subtitle">Orbiter Mission Control</span>
     </div>
   </div>
 
@@ -149,8 +149,6 @@
       </div>
     </div>
 
-
-
   </section>
 
   <!-- ============ RESULTS STAGE ============ -->
@@ -161,8 +159,8 @@
       <div class="results__banner-status">
         <div class="results__banner-icon" id="results-banner-icon">✓</div>
         <div>
-          <h2 class="results__banner-title" id="results-banner-title">Quality gate passed</h2>
-          <p class="results__banner-sub" id="results-banner-sub">RMSE and coverage within threshold across all tiles.</p>
+          <h2 class="results__banner-title" id="results-banner-title">Registration Summary</h2>
+          <p class="results__banner-sub" id="results-banner-sub">Raster alignment metrics and spatial tile diagnostics.</p>
         </div>
       </div>
       <button class="btn btn--ghost btn--sm" id="download-report-btn" type="button">Download report JSON</button>
@@ -251,14 +249,23 @@
       </div>
     </div>
 
+    <!-- DEDICATED DIAGNOSTIC / COMMON ERROR NOTICE BOX (Pops up at bottom ONLY after run encounters an issue) -->
+    <div class="run-notice" id="run-notice" hidden>
+      <div class="run-notice__icon">ℹ</div>
+      <div class="run-notice__body">
+        <h4 class="run-notice__title" id="notice-title">Run Diagnostic Notice</h4>
+        <p class="run-notice__detail" id="notice-detail"></p>
+      </div>
+    </div>
+
   </section>
 
 </main>
 
 <footer class="footer">
   <div class="footer__inner">
-    <span>Yaazhi GeoAlign OS · ISRO SIH26166 Multi-Modal Image Registration Pipeline</span>
-    <span class="footer__tag">Phase 11 Production Quality Gate Engine</span>
+    <span>Yaazhi GeoAlign OS · Multi-Modal Image Registration Pipeline</span>
+    <span class="footer__tag">Production Registration Engine</span>
   </div>
 </footer>
 
